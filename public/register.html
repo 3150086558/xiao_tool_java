@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 小肖的自用工具</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .register-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .register-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+        }
+        .register-card h1 {
+            text-align: center;
+            margin: 0 0 10px 0;
+            color: #1f2937;
+            font-size: 28px;
+        }
+        .register-card .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s;
+            box-sizing: border-box;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-group input.error {
+            border-color: #ef4444;
+        }
+        .form-group input.valid {
+            border-color: #10b981;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .footer-text {
+            text-align: center;
+            margin-top: 25px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .footer-text a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        .logo {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .password-rules {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        .password-rules h4 {
+            margin: 0 0 12px 0;
+            color: #374151;
+            font-size: 14px;
+        }
+        .rule-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .rule-item:last-child {
+            margin-bottom: 0;
+        }
+        .rule-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .rule-item.invalid .rule-icon {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+        .rule-item.valid .rule-icon {
+            background: #d1fae5;
+            color: #10b981;
+        }
+        .rule-item.invalid .rule-text {
+            color: #ef4444;
+        }
+        .rule-item.valid .rule-text {
+            color: #10b981;
+        }
+        .password-strength {
+            margin-top: 12px;
+        }
+        .strength-bar {
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            display: flex;
+            gap: 4px;
+        }
+        .strength-segment {
+            flex: 1;
+            height: 100%;
+            background: #e5e7eb;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+        .strength-text {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-page">
+        <div class="register-card">
+            <div class="logo">✨</div>
+            <h1>小肖的自用工具</h1>
+            <p class="subtitle">创建您的账号</p>
+            
+            <div class="error-message" id="errorMsg"></div>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="username" placeholder="3-20位字母、数字或下划线" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="password" placeholder="请输入密码" required autocomplete="new-password">
+                    <div class="password-rules">
+                        <h4>🔐 密码要求</h4>
+                        <div class="rule-item" id="rule-length">
+                            <span class="rule-icon">✗</span>
+                            <span class="rule-text">8-20位字符</span>
+                        </div>
+                        <div class="rule-item" id="rule-uppercase">
+                            <span class="rule-icon">✗</span>
+                            <span class="rule-text">包含大写字母 (A-Z)</span>
+                        </div>
+                        <div class="rule-item" id="rule-lowercase">
+                            <span class="rule-icon">✗</span>
+                            <span class="rule-text">包含小写字母 (a-z)</span>
+                        </div>
+                        <div class="rule-item" id="rule-number">
+                            <span class="rule-icon">✗</span>
+                            <span class="rule-text">包含数字 (0-9)</span>
+                        </div>
+                        <div class="password-strength">
+                            <div class="strength-bar">
+                                <div class="strength-segment" id="seg1"></div>
+                                <div class="strength-segment" id="seg2"></div>
+                                <div class="strength-segment" id="seg3"></div>
+                                <div class="strength-segment" id="seg4"></div>
+                            </div>
+                            <div class="strength-text" id="strengthText">密码强度：无</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="confirmPassword" placeholder="请再次输入密码" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn-primary" id="registerBtn">注册</button>
+            </form>
+            
+            <div class="footer-text">
+                已有账号？<a href="login.html">立即登录</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const registerForm = document.getElementById('registerForm');
+        const errorMsg = document.getElementById('errorMsg');
+        const registerBtn = document.getElementById('registerBtn');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+
+        // 密码验证规则
+        function validatePassword(password) {
+            return {
+                length: password.length >= 8 && password.length <= 20,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /[0-9]/.test(password)
+            };
+        }
+
+        // 更新密码强度显示
+        function updatePasswordStrength() {
+            const password = passwordInput.value;
+            const checks = validatePassword(password);
+            
+            // 更新规则显示
+            const rules = ['length', 'uppercase', 'lowercase', 'number'];
+            rules.forEach(rule => {
+                const el = document.getElementById('rule-' + rule);
+                const icon = el.querySelector('.rule-icon');
+                if (checks[rule]) {
+                    el.classList.remove('invalid');
+                    el.classList.add('valid');
+                    icon.textContent = '✓';
+                } else {
+                    el.classList.remove('valid');
+                    el.classList.add('invalid');
+                    icon.textContent = '✗';
+                }
+            });
+
+            // 计算强度
+            const score = Object.values(checks).filter(Boolean).length;
+            
+            // 更新强度条
+            const colors = ['#ef4444', '#f97316', '#eab308', '#10b981'];
+            const texts = ['弱', '一般', '良好', '强'];
+            for (let i = 1; i <= 4; i++) {
+                const seg = document.getElementById('seg' + i);
+                if (i <= score && score > 0) {
+                    seg.style.background = colors[score - 1];
+                } else {
+                    seg.style.background = '#e5e7eb';
+                }
+            }
+            document.getElementById('strengthText').textContent = 
+                score > 0 ? `密码强度：${texts[score - 1]}` : '密码强度：无';
+        }
+
+        passwordInput.addEventListener('input', updatePasswordStrength);
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.style.display = 'none';
+            
+            const username = document.getElementById('username').value;
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            // 验证用户名
+            if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+                errorMsg.textContent = '用户名格式不正确：3-20位字母、数字或下划线';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            // 验证密码
+            const checks = validatePassword(password);
+            if (!Object.values(checks).every(Boolean)) {
+                errorMsg.textContent = '密码不符合要求，请检查密码规则';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            // 验证确认密码
+            if (password !== confirmPassword) {
+                errorMsg.textContent = '两次输入的密码不一致';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            registerBtn.disabled = true;
+            registerBtn.textContent = '注册中...';
+
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, confirm_password: confirmPassword })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('注册成功！请登录');
+                    window.location.href = 'login.html';
+                } else {
+                    errorMsg.textContent = data.error || '注册失败';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                errorMsg.textContent = '网络错误，请重试';
+                errorMsg.style.display = 'block';
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = '注册';
+            }
+        });
+    </script>
+</body>
+</html>

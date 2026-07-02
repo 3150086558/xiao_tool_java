@@ -1,354 +1,185 @@
-# 小肖的自用工具 - 网页版多功能工具箱
+# 组织权限管理系统
 
-一个轻量级网页版个人工具箱，集成记账管理、待办事项、备忘录、数据库查询、用户管理等功能。适合：
+## 项目概述
 
-1. Windows 电脑本地运行；
-2. Linux 服务器部署；
-3. Docker 部署；
-4. 使用 SQLite / PostgreSQL / MySQL 存储数据。
+一个基于 **Java Spring Boot + Python FastAPI + Vue 3 + PostgreSQL** 的组织权限管理系统，支持树形组织架构、职位管理、角色权限、数据权限等功能。
 
----
+## 技术栈
 
-## 一、技术栈
+| 层级 | 技术 | 端口 |
+|------|------|------|
+| 前端 | Vue 3 + Element Plus + Vite | 5173 |
+| Java后端 | Spring Boot 3.2 + Spring Security + MyBatis Plus | 8080 |
+| Python后端 | FastAPI + Uvicorn | 8000 |
+| 数据库 | PostgreSQL 16 | 5432 |
 
-### 前端
+## Java 后端功能（/api/sys/*）
 
-- HTML5 + CSS3 + 原生 JavaScript
-- 响应式布局，手机浏览器可以直接访问
-- 不依赖 Vue / React，部署简单
+负责系统管理和认证鉴权核心功能：
 
-### 后端
+| 模块 | API 前缀 | 说明 |
+|------|----------|------|
+| 认证模块 | `/api/sys/login`, `/api/sys/logout`, `/api/sys/userinfo` | JWT 登录/登出/用户信息 |
+| 组织管理 | `/api/sys/org/*` | 树形组织 CRUD |
+| 人员管理 | `/api/sys/user/*` | 用户管理、职位分配、密码重置 |
+| 职位管理 | `/api/sys/position/*` | 职位 CRUD、角色分配、数据权限配置 |
+| 角色管理 | `/api/sys/role/*` | 角色 CRUD、菜单权限分配 |
+| 菜单管理 | `/api/sys/menu/*` | 菜单树 CRUD |
+| 数据权限 | `/api/sys/data-scope/*` | 获取可见用户/组织列表 |
 
-- Python 3
-- Python 标准库 HTTP Server
-- REST API 接口
-- 支持 CSV / Excel 导入导出
+**核心特性**：
+- RBAC 权限模型（用户→职位→角色→菜单）
+- 5种数据权限策略（本人/本部门/本部门及子部门/自定义/全部）
+- JWT 无状态认证
+- BCrypt 密码加密
 
-### 数据库
+## Python 后端功能（/api/app/*）
 
-- SQLite：默认，无需单独安装，数据存在 `data/accounting.db`
-- PostgreSQL：适合正式服务器部署
-- MySQL：适合正式服务器部署
+负责业务功能，迁移自原有记账系统：
 
-### 打包 / 部署
+| 模块 | API 前缀 | 说明 |
+|------|----------|------|
+| 记账管理 | `/api/app/records/*` | 收支记录 CRUD |
+| 统计报表 | `/api/app/summary` | 收支汇总、分类统计 |
+| 导入导出 | `/api/app/import`, `/api/app/export.*` | Excel/CSV 导入导出 |
+| 待办事项 | `/api/app/todos/*` | 待办 CRUD |
+| 备忘录 | `/api/app/notes/*` | 备忘录 CRUD |
+| 数据库查询 | `/api/app/db-query`, `/api/app/db-connections/*` | 外部数据库查询工具 |
 
-- Windows：`run_windows.bat` 一键运行
-- Linux：`install_ubuntu_env.sh` 安装环境，`run_server.sh` 启动
-- Docker：Dockerfile 已提供
-- Windows exe：`build_windows_exe.bat`
+**核心特性**：
+- 验证 Java 签发的 JWT
+- 支持数据权限过滤
+- Excel 模板下载和导入
 
----
+## 项目结构
 
-## 二、功能模块
-
-### 财务管理
-
-- **记账**：新增、编辑、删除账单，支持收入/支出分类
-  - 按月份、类型、关键词筛选
-  - 自动统计收入、支出、结余
-  - 分类汇总
-  - 导入 Excel（含进度条，防重复导入）
-  - 导出 Excel / CSV
-  - 删除全部数据
-- **统计报表**：按月/分类/类型可视化统计
-
-### 日常工具
-
-- **待办事项**：增删改查，支持完成状态切换
-- **备忘录**：增删改查，支持搜索
-- **数据库查询**：连接外部 MySQL / PostgreSQL 数据库
-  - 配置数据库连接（主机、端口、用户名、密码、数据库名）
-  - 测试连接
-  - 获取并浏览表列表
-  - 查看表结构（列名、类型、是否可空、默认值）
-  - 执行 SQL 查询（SELECT / SHOW / DESCRIBE / EXPLAIN）
-
-### 系统管理（仅管理员）
-
-- **用户管理**：
-  - 查看所有用户列表（含记账/待办/备忘录条数统计）
-  - 重置用户密码
-  - 删除用户（连同所有关联数据）
-
-### 通用功能
-
-- 多用户支持，注册/登录/退出
-- 修改密码
-- 左侧菜单导航，动态菜单树
-- 手机端自适应布局
-
----
-
-## 三、页面结构
-
-```text
-├── 登录页 / 注册页
-├── 首页（概览仪表盘）
-├── 记账页
-│   ├── 顶部：收入/支出/结余统计卡片
-│   ├── 中间：新增账单表单
-│   ├── 筛选条件（月份、收入/支出、关键词）
-│   ├── 账单列表（支持编辑、删除）
-│   └── 底部：分类汇总 + 导入/导出/删除全部按钮
-├── 统计报表页
-├── 待办事项页
-├── 备忘录页
-├── 数据库查询页
-│   ├── 连接配置表单
-│   ├── 表列表（可点击查看结构）
-│   ├── 表结构展示
-│   └── SQL 查询编辑器 + 结果表格
-└── 用户管理页（仅管理员可见）
 ```
-
----
-
-## 四、目录说明
-
-```text
 my_project/
-├── app.py                  后端服务入口（Python）
-├── public/
-│   ├── index.html          前端主页面
-│   ├── login.html          登录/注册页面
-│   ├── style.css           页面样式
-│   └── app.js              前端交互逻辑
-├── data/
-│   └── accounting.db       SQLite 数据库文件，首次运行自动生成
-├── test_data/              测试文件目录（非核心代码）
-├── requirements.txt        Python 依赖（psycopg2-binary, PyMySQL, pyinstaller）
-├── .env.example            环境变量配置模板
-├── install_ubuntu_env.sh   Ubuntu/Linux 环境安装脚本
-├── run_server.sh           Linux 启动脚本
-├── run_windows.bat          Windows 启动脚本
-├── Dockerfile              Docker 部署文件
-├── setup_postgres.sql      PostgreSQL 初始化参考脚本
-├── setup_mysql.sql         MySQL 初始化参考脚本
-└── build_windows_exe.bat   Windows exe 打包脚本
+├── backend-java/          # Java Spring Boot 后端
+│   ├── src/main/java/com/xiao/sys/
+│   ├── src/main/resources/
+│   └── pom.xml
+├── backend-python/        # Python FastAPI 后端
+│   ├── app/
+│   └── requirements.txt
+├── frontend/              # Vue 3 前端
+│   ├── src/
+│   └── package.json
+├── sql/                   # 数据库脚本
+│   ├── init_postgres.sql
+│   ├── init_mysql.sql
+│   └── init_sqlite.sql
+├── nginx/                 # Nginx 配置
+├── docker-compose.yml     # Docker 一键部署
+└── IMPLEMENTATION_PLAN.md # 实现方案文档
 ```
 
----
+## 快速开始
 
-## 五、启动与关闭
+### 环境要求
+- JDK 17+
+- Python 3.10+
+- Node.js 20+
+- PostgreSQL 16
 
-### 方式一：双击脚本（推荐）
+### 1. 创建数据库
 
-- **Windows**：双击 `run_windows.bat` 启动，关闭命令行窗口即可关闭服务
-- **Linux**：`./run_server.sh` 启动，按 `Ctrl + C` 关闭
+```sql
+CREATE DATABASE org_sys WITH ENCODING 'UTF8';
+```
 
-### 方式二：命令行手动启动
+### 2. 初始化数据库
 
 ```bash
-# 进入项目目录
-cd my_project
-
-# 启动服务
-python app.py
+psql -d org_sys -U postgres -f sql/init_postgres.sql
 ```
 
-启动后浏览器打开：`http://127.0.0.1:8000`
-
-### 方式三：后台运行（Linux/Mac）
+### 3. 启动 Java 后端
 
 ```bash
-# 后台启动，日志写入 app.log
-nohup python app.py > app.log 2>&1 &
-
-# 查看进程
-ps aux | grep app.py
-
-# 关闭服务（按 PID 结束）
-kill <PID>
+cd backend-java
+mvnw.cmd spring-boot:run
+# 或运行已编译的 jar
+java -jar target/backend-java-1.0.0.jar
 ```
 
-### 关闭服务
+### 4. 启动 Python 后端
 
-| 方式 | 操作 |
+```bash
+cd backend-python
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### 5. 启动前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 6. 访问系统
+
+浏览器打开 http://localhost:5173
+
+**默认账号**：admin / admin123
+
+## API 访问
+
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| 前端 | http://localhost:5173 | Vue SPA |
+| Java API | http://localhost:8080/api/sys/ | 系统管理 |
+| Python API | http://localhost:8000/api/app/ | 业务功能 |
+| Python Docs | http://localhost:8000/docs | API 文档 |
+
+## Docker 部署
+
+```bash
+docker-compose up -d
+```
+
+## 权限模型
+
+```
+组织(org) ──树形── 组织
+    │
+    ├── 职位(position)
+    │      │
+    │      ├── 角色绑定(role_position)
+    │      │      │
+    │      │      └── 角色(role) ── 菜单权限(role_menu)
+    │      │                              │
+    │      │                              └── 菜单/按钮(menu)
+    │      │
+    │      └── 数据权限规则(position_data_scope)
+    │
+    └── 人员(user)
+           │
+           └── user_position (一人可多职位)
+```
+
+## 数据权限策略
+
+| 策略 | 说明 |
 |------|------|
-| 命令行窗口 | 直接关闭窗口，或按 `Ctrl + C` |
-| 后台进程 | `kill <Python进程PID>` |
-| Windows PowerShell | `Get-Process python \| Stop-Process -Force` |
+| self | 仅本人 |
+| dept | 本部门 |
+| dept_and_sub | 本部门及子部门 |
+| custom | 自定义部门 |
+| all | 全部数据 |
 
----
+## 开发说明
 
-## 六、Windows 电脑运行
+### JWT 密钥
 
-### 1. 安装环境
+Java 和 Python 共享同一密钥，配置在：
+- Java: `application.yml` → `jwt.secret`
+- Python: 环境变量 `JWT_SECRET` 或代码中硬编码
 
-Windows 电脑需要先安装 Python 3.10 或以上版本，安装时记得勾选 `Add Python to PATH`。
+### 前后端联调
 
-### 2. 启动应用
-
-双击 `run_windows.bat`，它会自动创建虚拟环境、安装依赖、启动服务。
-
-启动后浏览器打开：`http://127.0.0.1:8000`
-
-默认管理员账号：admin / Mkld@2026（首次注册时创建）
-
----
-
-## 七、Ubuntu / Linux 服务器部署
-
-```bash
-# 上传代码到服务器
-cd /opt/my_project
-
-# 安装环境
-chmod +x install_ubuntu_env.sh run_server.sh
-./install_ubuntu_env.sh
-
-# 配置环境变量
-cp .env.example .env
-nano .env
-
-# 启动
-./run_server.sh
-```
-
-服务器本机访问：`http://127.0.0.1:8000`
-外部访问：`http://服务器IP:8000`（需安全组放行 TCP 8000）
-
----
-
-## 八、数据库配置
-
-### SQLite（默认）
-
-无需额外安装，数据保存在 `data/accounting.db`。
-
-```env
-DB_TYPE=sqlite
-```
-
-### PostgreSQL
-
-```env
-DB_TYPE=postgres
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_NAME=accounting
-DB_USER=accounting_user
-DB_PASSWORD=请改成强密码
-```
-
-### MySQL
-
-```env
-DB_TYPE=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=accounting
-DB_USER=accounting_user
-DB_PASSWORD=请改成强密码
-```
-
----
-
-## 九、Docker 部署
-
-### SQLite 模式
-
-```bash
-docker build -t my-project .
-docker run -d --name my-project -p 8000:8000 -v $PWD/data:/app/data my-project
-```
-
-### PostgreSQL / MySQL 模式
-
-```bash
-docker run -d --name my-project -p 8000:8000 \
-  -e DB_TYPE=postgres \
-  -e DB_HOST=PostgreSQL地址 \
-  -e DB_PORT=5432 \
-  -e DB_NAME=accounting \
-  -e DB_USER=accounting_user \
-  -e DB_PASSWORD=密码 \
-  my-project
-```
-
----
-
-## 十、手机访问
-
-电脑运行后，手机和电脑连接同一 WiFi，手机浏览器打开 `http://电脑IP:8000` 即可。
-
----
-
-## 十一、API 接口
-
-### 记账
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/records | 查询账单列表 |
-| POST | /api/records | 新增账单 |
-| PUT | /api/records/{id} | 修改账单 |
-| DELETE | /api/records/{id} | 删除账单 |
-| DELETE | /api/clear-all | 删除全部账单 |
-| GET | /api/summary | 统计汇总 |
-| GET | /api/export.csv | 导出 CSV |
-| GET | /api/export.xlsx | 导出 Excel |
-| POST | /api/import | 导入 Excel |
-
-### 待办事项
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/todos | 查询待办列表 |
-| POST | /api/todos | 新增待办 |
-| PUT | /api/todos/{id} | 修改待办 |
-| DELETE | /api/todos/{id} | 删除待办 |
-
-### 备忘录
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/notes | 查询备忘录列表 |
-| POST | /api/notes | 新增备忘录 |
-| PUT | /api/notes/{id} | 修改备忘录 |
-| DELETE | /api/notes/{id} | 删除备忘录 |
-
-### 数据库查询
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/db-query | 连接测试/获取表列表/查看表结构/执行SQL |
-
-### 用户管理
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/users | 获取用户列表（仅admin） |
-| DELETE | /api/users/{id} | 删除用户（仅admin） |
-| PUT | /api/users/reset-password | 重置密码（仅admin） |
-
-### 通用
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/login | 登录 |
-| POST | /api/register | 注册 |
-| POST | /api/change-password | 修改密码 |
-| POST | /api/logout | 退出 |
-| GET | /api/menus | 获取用户菜单 |
-| GET | /api/health | 健康检查 |
-
----
-
-## 十二、数据表结构
-
-应用启动时自动创建以下表：
-
-- `users` — 用户表
-- `records` — 记账记录表
-- `todos` — 待办事项表
-- `notes` — 备忘录表
-- `menus` — 用户菜单表
-
----
-
-## 十三、生产部署建议
-
-- 个人使用：SQLite + `run_windows.bat` 即可
-- 服务器部署：PostgreSQL/MySQL + Nginx + HTTPS
-- 最省事迁移：Docker + SQLite 数据目录挂载
+前端通过 Vite 代理访问后端：
+- `/api/sys/*` → http://127.0.0.1:8080
+- `/api/app/*` → http://127.0.0.1:8000

@@ -68,14 +68,6 @@ def update_accounting(record_id: int, payload: RecordUpdate, user: CurrentUser =
     return {"code": 200, "data": row}
 
 
-@router.delete("/accounting/{record_id}")
-def delete_accounting(record_id: int, user: CurrentUser = Depends(get_current_user)):
-    deleted = records_service.delete_record(user.user_id, record_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="记录不存在")
-    return {"code": 200, "data": {"ok": True}}
-
-
 @router.post("/accounting/import")
 def import_accounting(
     file: UploadFile = File(...),
@@ -93,8 +85,16 @@ def import_accounting(
 
 @router.delete("/accounting/all")
 def delete_all_accounting(user: CurrentUser = Depends(get_current_user)):
-    deleted = records_service.delete_all_records(user.user_id)
-    return {"code": 200, "data": {"deleted": deleted}}
+    count = records_service.delete_all_records(user.user_id)
+    return {"code": 200, "data": {"deleted": count}}
+
+
+@router.delete("/accounting/{record_id}")
+def delete_accounting(record_id: int, user: CurrentUser = Depends(get_current_user)):
+    deleted = records_service.delete_record(user.user_id, record_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    return {"code": 200, "data": {"ok": True}}
 
 
 @router.get("/accounting/export")

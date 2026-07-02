@@ -2,6 +2,7 @@ package com.xiao.sys.controller;
 
 import com.xiao.sys.common.Result;
 import com.xiao.sys.dto.DataScopeDTO;
+import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.dto.PositionDTO;
 import com.xiao.sys.entity.SysPosition;
 import com.xiao.sys.service.SysPositionService;
@@ -31,6 +32,20 @@ public class PositionController {
     @GetMapping
     public Result<List<PositionDTO>> getPositionList(@RequestParam(required = false) Integer orgId) {
         return Result.success(sysPositionService.getPositionList(orgId));
+    }
+
+    @GetMapping("/page")
+    public Result<PageResult<PositionDTO>> getPositionPage(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Integer orgId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        PositionDTO query = new PositionDTO();
+        query.setName(name);
+        query.setOrgId(orgId);
+        query.setPageNum(page);
+        query.setPageSize(size);
+        return Result.success(sysPositionService.getPositionPage(query));
     }
 
     @PostMapping

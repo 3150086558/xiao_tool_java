@@ -93,8 +93,9 @@ public class UserController {
     }
 
     @PutMapping("/{id}/reset-password")
-    public Result<Void> resetPassword(@PathVariable Integer id) {
-        sysUserService.resetPassword(id);
+    public Result<Void> resetPassword(@PathVariable Integer id, @RequestBody(required = false) Map<String, Object> body) {
+        String password = body != null ? (String) body.get("password") : null;
+        sysUserService.resetPassword(id, password);
         return Result.success();
     }
 

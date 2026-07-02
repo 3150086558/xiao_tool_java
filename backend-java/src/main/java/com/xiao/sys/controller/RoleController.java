@@ -1,6 +1,7 @@
 package com.xiao.sys.controller;
 
 import com.xiao.sys.common.Result;
+import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.dto.RoleDTO;
 import com.xiao.sys.entity.SysRole;
 import com.xiao.sys.service.SysRoleService;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -29,6 +31,20 @@ public class RoleController {
     @GetMapping
     public Result<List<SysRole>> getRoleList() {
         return Result.success(sysRoleService.getRoleList());
+    }
+
+    @GetMapping("/page")
+    public Result<PageResult<RoleDTO>> getRolePage(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String code,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        RoleDTO query = new RoleDTO();
+        query.setName(name);
+        query.setCode(code);
+        query.setPageNum(pageNum);
+        query.setPageSize(pageSize);
+        return Result.success(sysRoleService.getRolePage(query));
     }
 
     @PostMapping

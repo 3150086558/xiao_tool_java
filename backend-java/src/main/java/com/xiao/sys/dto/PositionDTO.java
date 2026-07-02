@@ -19,4 +19,9 @@ public class PositionDTO {
     private List<Integer> roleIds;
     private String scopeType;
     private List<Integer> customOrgIds;
+
+    private String name;
+    private String code;
+    private Integer pageNum;
+    private Integer pageSize;
 }

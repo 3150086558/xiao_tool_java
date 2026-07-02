@@ -1,6 +1,7 @@
 package com.xiao.sys.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.dto.RoleDTO;
 import com.xiao.sys.entity.SysRole;
 
@@ -9,6 +10,8 @@ import java.util.List;
 public interface SysRoleService extends IService<SysRole> {
 
     List<SysRole> getRoleList();
+
+    PageResult<RoleDTO> getRolePage(RoleDTO query);
 
     SysRole createRole(RoleDTO dto);
 

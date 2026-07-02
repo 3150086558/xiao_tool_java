@@ -42,20 +42,6 @@
         <el-button :icon="Download" @click="handleExport">导出</el-button>
         <el-button :icon="Document" @click="handleDownloadTemplate">下载模板</el-button>
       </div>
-      <div v-if="importProgress > 0 && importProgress < 100" class="progress-bar">
-        <el-progress :percentage="importProgress" :stroke-width="16" status="success">
-          <template #default="{ percentage }">
-            <span class="progress-text">导入中 {{ percentage }}%</span>
-          </template>
-        </el-progress>
-      </div>
-      <div v-if="exportProgress > 0 && exportProgress < 100" class="progress-bar">
-        <el-progress :percentage="exportProgress" :stroke-width="16" status="success">
-          <template #default="{ percentage }">
-            <span class="progress-text">导出中 {{ percentage }}%</span>
-          </template>
-        </el-progress>
-      </div>
       <el-table v-loading="loading" :data="tableData" border stripe show-summary :summary-method="getSummaries">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="date" label="日期" width="120" />
@@ -101,6 +87,31 @@
         />
       </div>
     </el-card>
+
+    <!-- 进度条弹窗 -->
+    <el-dialog 
+      v-model="progressDialogVisible" 
+      title="处理中" 
+      width="420px" 
+      :close-on-click-modal="false" 
+      :close-on-press-escape="false"
+      :show-close="false"
+    >
+      <div v-if="importProgress > 0 && importProgress < 100" style="padding: 12px 0;">
+        <el-progress :percentage="importProgress" :stroke-width="18" status="success">
+          <template #default="{ percentage }">
+            <span class="progress-text">导入进度：{{ percentage }}%</span>
+          </template>
+        </el-progress>
+      </div>
+      <div v-if="exportProgress > 0 && exportProgress < 100" style="padding: 12px 0;">
+        <el-progress :percentage="exportProgress" :stroke-width="18" status="success">
+          <template #default="{ percentage }">
+            <span class="progress-text">导出进度：{{ percentage }}%</span>
+          </template>
+        </el-progress>
+      </div>
+    </el-dialog>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="560px" @close="resetForm">
@@ -162,7 +173,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Refresh, Upload, Download, Delete, Document } from '@element-plus/icons-vue'
 import {
@@ -181,6 +192,9 @@ const tableData = ref([])
 const total = ref(0)
 const importProgress = ref(0)
 const exportProgress = ref(0)
+const progressDialogVisible = computed(() => {
+  return (importProgress.value > 0 && importProgress.value < 100) || (exportProgress.value > 0 && exportProgress.value < 100)
+})
 const categories = ['餐饮', '交通', '购物', '娱乐', '住房', '医疗', '教育', '工资', '其他']
 
 const query = reactive({

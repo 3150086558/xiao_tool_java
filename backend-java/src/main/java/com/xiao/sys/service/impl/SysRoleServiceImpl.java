@@ -1,9 +1,12 @@
 package com.xiao.sys.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiao.sys.common.BusinessException;
 import com.xiao.sys.common.ResultCode;
+import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.dto.RoleDTO;
 import com.xiao.sys.entity.SysRole;
 import com.xiao.sys.entity.SysRoleMenu;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> implements SysRoleService {
@@ -34,14 +38,46 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     }
 
     @Override
+    public PageResult<RoleDTO> getRolePage(RoleDTO query) {
+        Page<SysRole> page = new Page<>(
+                query.getPageNum() != null ? query.getPageNum() : 1,
+                query.getPageSize() != null ? query.getPageSize() : 10);
+        LambdaQueryWrapper<SysRole> wrapper = new LambdaQueryWrapper<>();
+        if (query.getName() != null && !query.getName().isEmpty()) {
+            wrapper.and(w -> w.like(SysRole::getRoleName, query.getName()));
+        }
+        if (query.getCode() != null && !query.getCode().isEmpty()) {
+            wrapper.and(w -> w.like(SysRole::getRoleCode, query.getCode()));
+        }
+        wrapper.orderByAsc(SysRole::getId);
+        Page<SysRole> result = this.page(page, wrapper);
+
+        List<RoleDTO> dtoList = result.getRecords().stream().map(r -> {
+            RoleDTO dto = new RoleDTO();
+            BeanUtils.copyProperties(r, dto);
+            dto.setName(r.getRoleName());
+            dto.setCode(r.getRoleCode());
+            return dto;
+        }).collect(Collectors.toList());
+        return PageResult.of(dtoList, result.getTotal(), result.getCurrent(), result.getSize());
+    }
+
+    @Override
     public SysRole createRole(RoleDTO dto) {
+        String roleCode = dto.getCode() != null ? dto.getCode() : dto.getRoleCode();
         LambdaQueryWrapper<SysRole> codeWrapper = new LambdaQueryWrapper<>();
-        codeWrapper.eq(SysRole::getRoleCode, dto.getRoleCode());
+        codeWrapper.eq(SysRole::getRoleCode, roleCode);
         if (this.count(codeWrapper) > 0) {
             throw new BusinessException(ResultCode.ROLE_CODE_EXISTS);
         }
         SysRole role = new SysRole();
         BeanUtils.copyProperties(dto, role, "menuIds");
+        if (dto.getName() != null) {
+            role.setRoleName(dto.getName());
+        }
+        if (dto.getCode() != null) {
+            role.setRoleCode(dto.getCode());
+        }
         if (role.getStatus() == null) {
             role.setStatus(1);
         }
@@ -60,14 +96,26 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         if (role == null) {
             throw new BusinessException(ResultCode.ROLE_NOT_FOUND);
         }
-        if (dto.getRoleCode() != null && !dto.getRoleCode().equals(role.getRoleCode())) {
+        String newCode = dto.getCode() != null ? dto.getCode() : dto.getRoleCode();
+        if (newCode != null && !newCode.equals(role.getRoleCode())) {
             LambdaQueryWrapper<SysRole> codeWrapper = new LambdaQueryWrapper<>();
-            codeWrapper.eq(SysRole::getRoleCode, dto.getRoleCode()).ne(SysRole::getId, id);
+            codeWrapper.eq(SysRole::getRoleCode, newCode).ne(SysRole::getId, id);
             if (this.count(codeWrapper) > 0) {
                 throw new BusinessException(ResultCode.ROLE_CODE_EXISTS);
             }
         }
-        BeanUtils.copyProperties(dto, role, "id", "menuIds");
+        if (dto.getName() != null) {
+            role.setRoleName(dto.getName());
+        }
+        if (dto.getCode() != null) {
+            role.setRoleCode(dto.getCode());
+        }
+        if (dto.getStatus() != null) {
+            role.setStatus(dto.getStatus());
+        }
+        if (dto.getDescription() != null) {
+            role.setDescription(dto.getDescription());
+        }
         role.setUpdatedAt(LocalDateTime.now());
         this.updateById(role);
         return role;

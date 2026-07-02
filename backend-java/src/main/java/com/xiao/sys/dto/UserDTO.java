@@ -11,6 +11,7 @@ public class UserDTO {
     private Integer id;
     private String username;
     private String password;
+    private String name;
     private String realName;
     private String email;
     private String phone;
@@ -20,6 +21,7 @@ public class UserDTO {
     private List<Integer> positionIds;
     private Integer primaryPositionId;
     private LocalDateTime createdAt;
+    private String createTime;
 
     // 查询用字段
     private String keyword;

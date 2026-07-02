@@ -12,11 +12,18 @@ import java.util.List;
 public class PageResult<T> {
 
     private List<T> list;
+    private List<T> records;
     private Long total;
     private Long pageNum;
     private Long pageSize;
 
     public static <T> PageResult<T> of(List<T> list, Long total, Long pageNum, Long pageSize) {
-        return new PageResult<>(list, total, pageNum, pageSize);
+        PageResult<T> result = new PageResult<>();
+        result.setList(list);
+        result.setRecords(list);
+        result.setTotal(total);
+        result.setPageNum(pageNum);
+        result.setPageSize(pageSize);
+        return result;
     }
 }

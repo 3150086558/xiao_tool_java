@@ -14,4 +14,9 @@ public class RoleDTO {
     private Integer status;
 
     private List<Integer> menuIds;
+
+    private String name;
+    private String code;
+    private Integer pageNum;
+    private Integer pageSize;
 }

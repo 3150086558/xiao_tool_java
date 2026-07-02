@@ -64,8 +64,7 @@ const router = createRouter({
 
 // 全局前置守卫：动态路由生成 + 鉴权
 const WHITELIST = ['/login', '/404']
-let dynamicAdded = false
-const dynamicRouteNames = new Set()
+const registeredRouteNames = new Set()
 
 router.beforeEach(async (to, from, next) => {
   document.title = (to.meta && to.meta.title ? to.meta.title + ' - ' : '') + '小肖的自用工具'
@@ -86,7 +85,8 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  if (dynamicAdded) {
+  // 检查是否已有动态路由
+  if (registeredRouteNames.size > 0) {
     next()
     return
   }
@@ -110,29 +110,37 @@ router.beforeEach(async (to, from, next) => {
       if (!route.component) {
         route.component = Layout
       }
+      if (!route.name) {
+        route.name = `AutoGen-${Math.random().toString(36).slice(2, 9)}`
+      }
       router.addRoute(route)
-      if (route.name) dynamicRouteNames.add(route.name)
+      registeredRouteNames.add(route.name)
     })
 
-    dynamicAdded = true
     // 重新导航，确保 addRoute 生效
     next({ ...to, replace: true })
   } catch (e) {
     console.error('生成动态路由失败:', e)
     const { useUserStore } = await import('@/store/user')
+    const { usePermissionStore } = await import('@/store/permission')
     useUserStore().resetState()
-    dynamicAdded = false
+    usePermissionStore().resetRoutes()
+    resetRouterSync()
     next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
   }
 })
 
-// 重置动态路由（退出登录时调用，Vue Router 4 兼容）
-export function resetRouter() {
-  dynamicAdded = false
-  dynamicRouteNames.forEach((name) => {
+// 同步重置动态路由
+function resetRouterSync() {
+  registeredRouteNames.forEach((name) => {
     router.removeRoute(name)
   })
-  dynamicRouteNames.clear()
+  registeredRouteNames.clear()
+}
+
+// 重置动态路由（退出登录时调用，Vue Router 4 兼容）
+export function resetRouter() {
+  resetRouterSync()
 }
 
 export default router

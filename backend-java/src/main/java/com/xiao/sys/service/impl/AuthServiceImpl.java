@@ -1,5 +1,6 @@
 package com.xiao.sys.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiao.sys.common.BusinessException;
 import com.xiao.sys.common.ResultCode;
 import com.xiao.sys.dto.ChangePasswordDTO;
@@ -76,6 +77,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public Map<String, Object> login(LoginDTO dto) {
         SysUser user = sysUserMapper.selectByUsername(dto.getUsername());
+        if (user == null) {
+            user = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getPhone, dto.getUsername()));
+        }
         if (user == null) {
             throw new BusinessException(ResultCode.USER_PASSWORD_ERROR);
         }

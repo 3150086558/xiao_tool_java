@@ -6,6 +6,20 @@ from datetime import datetime
 from app.database import exec_sql, fetchone, get_db
 
 
+def _convert_note(row) -> dict:
+    d = dict(row)
+    d["createTime"] = d.get("created_at")
+    d["updateTime"] = d.get("updated_at")
+    if d.get("tags"):
+        try:
+            d["tags"] = json.loads(d["tags"]) if isinstance(d["tags"], str) else d["tags"]
+        except (json.JSONDecodeError, TypeError):
+            d["tags"] = []
+    else:
+        d["tags"] = []
+    return d
+
+
 def list_notes(user_id: int) -> list:
     with get_db() as conn:
         cur = exec_sql(
@@ -13,18 +27,18 @@ def list_notes(user_id: int) -> list:
             "SELECT * FROM notes WHERE user_id = %s ORDER BY updated_at DESC",
             (user_id,),
         )
-        rows = []
-        for r in cur.fetchall():
-            d = dict(r)
-            if d.get("tags"):
-                try:
-                    d["tags"] = json.loads(d["tags"]) if isinstance(d["tags"], str) else d["tags"]
-                except (json.JSONDecodeError, TypeError):
-                    d["tags"] = []
-            else:
-                d["tags"] = []
-            rows.append(d)
-        return rows
+        return [_convert_note(r) for r in cur.fetchall()]
+
+
+def get_note(user_id: int, note_id: int) -> dict:
+    with get_db() as conn:
+        cur = exec_sql(
+            conn,
+            "SELECT * FROM notes WHERE id = %s AND user_id = %s",
+            (note_id, user_id),
+        )
+        row = fetchone(cur)
+        return _convert_note(row) if row else None
 
 
 def create_note(user_id: int, data: dict) -> dict:
@@ -43,12 +57,7 @@ def create_note(user_id: int, data: dict) -> dict:
             (user_id, title, content, json.dumps(tags, ensure_ascii=False), now, now),
         )
         row = fetchone(cur)
-        if row and row.get("tags"):
-            try:
-                row["tags"] = json.loads(row["tags"]) if isinstance(row["tags"], str) else row["tags"]
-            except (json.JSONDecodeError, TypeError):
-                row["tags"] = []
-    return row
+        return _convert_note(row) if row else None
 
 
 def update_note(user_id: int, note_id: int, data: dict) -> dict:
@@ -67,12 +76,7 @@ def update_note(user_id: int, note_id: int, data: dict) -> dict:
             (title, content, json.dumps(tags, ensure_ascii=False), now, note_id, user_id),
         )
         row = fetchone(cur)
-        if row and row.get("tags"):
-            try:
-                row["tags"] = json.loads(row["tags"]) if isinstance(row["tags"], str) else row["tags"]
-            except (json.JSONDecodeError, TypeError):
-                row["tags"] = []
-    return row
+        return _convert_note(row) if row else None
 
 
 def delete_note(user_id: int, note_id: int) -> int:

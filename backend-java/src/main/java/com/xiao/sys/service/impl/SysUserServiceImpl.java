@@ -70,6 +70,19 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         return PageResult.of(dtoList, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
     }
 
+    private SysUser convertToEntity(UserDTO dto) {
+        SysUser user = new SysUser();
+        user.setId(dto.getId());
+        user.setUsername(dto.getUsername());
+        user.setPassword(dto.getPassword());
+        user.setRealName(dto.getName() != null ? dto.getName() : dto.getRealName());
+        user.setEmail(dto.getEmail());
+        user.setPhone(dto.getPhone());
+        user.setOrgId(dto.getOrgId());
+        user.setStatus(dto.getStatus());
+        return user;
+    }
+
     @Override
     @Transactional
     public SysUser createUser(UserDTO dto) {
@@ -78,8 +91,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (this.count(wrapper) > 0) {
             throw new BusinessException(ResultCode.USERNAME_EXISTS);
         }
-        SysUser user = new SysUser();
-        BeanUtils.copyProperties(dto, user, "positionIds", "primaryPositionId", "orgName", "keyword", "pageNum", "pageSize");
+        SysUser user = convertToEntity(dto);
         String rawPwd = dto.getPassword() != null && !dto.getPassword().isEmpty() ? dto.getPassword() : DEFAULT_PASSWORD;
         user.setPassword(passwordEncoder.encode(rawPwd));
         if (user.getStatus() == null) {
@@ -109,7 +121,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 throw new BusinessException(ResultCode.USERNAME_EXISTS);
             }
         }
-        BeanUtils.copyProperties(dto, user, "id", "password", "positionIds", "primaryPositionId", "orgName", "keyword", "pageNum", "pageSize");
+        if (dto.getUsername() != null) user.setUsername(dto.getUsername());
+        if (dto.getName() != null) user.setRealName(dto.getName());
+        if (dto.getRealName() != null) user.setRealName(dto.getRealName());
+        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
+        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
+        if (dto.getOrgId() != null) user.setOrgId(dto.getOrgId());
+        if (dto.getStatus() != null) user.setStatus(dto.getStatus());
         user.setUpdatedAt(LocalDateTime.now());
         this.updateById(user);
         return user;
@@ -163,6 +181,18 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
+    public void resetPassword(Integer id, String password) {
+        SysUser user = this.getById(id);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        String pwd = (password != null && !password.isEmpty()) ? password : DEFAULT_PASSWORD;
+        user.setPassword(passwordEncoder.encode(pwd));
+        user.setUpdatedAt(LocalDateTime.now());
+        this.updateById(user);
+    }
+
+    @Override
     public void updateStatus(Integer id, Integer status) {
         SysUser user = this.getById(id);
         if (user == null) {
@@ -181,6 +211,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private UserDTO convertToDTO(SysUser user) {
         UserDTO dto = new UserDTO();
         BeanUtils.copyProperties(user, dto, "password");
+        dto.setName(user.getRealName());
+        dto.setCreateTime(user.getCreatedAt() != null ? user.getCreatedAt().toString().replace("T", " ") : null);
         if (user.getOrgId() != null) {
             SysOrg org = sysOrgMapper.selectById(user.getOrgId());
             if (org != null) {

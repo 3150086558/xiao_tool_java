@@ -2,6 +2,7 @@ package com.xiao.sys.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xiao.sys.dto.DataScopeDTO;
+import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.dto.PositionDTO;
 import com.xiao.sys.entity.SysPosition;
 
@@ -10,6 +11,8 @@ import java.util.List;
 public interface SysPositionService extends IService<SysPosition> {
 
     List<PositionDTO> getPositionList(Integer orgId);
+
+    PageResult<PositionDTO> getPositionPage(PositionDTO query);
 
     SysPosition createPosition(PositionDTO dto);
 

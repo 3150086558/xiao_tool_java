@@ -21,6 +21,8 @@ public interface SysUserService extends IService<SysUser> {
 
     void resetPassword(Integer id);
 
+    void resetPassword(Integer id, String password);
+
     void updateStatus(Integer id, Integer status);
 
     List<Integer> getPositionIdsByUserId(Integer userId);

@@ -1,10 +1,13 @@
 package com.xiao.sys.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiao.sys.common.BusinessException;
 import com.xiao.sys.common.ResultCode;
 import com.xiao.sys.dto.DataScopeDTO;
+import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.dto.PositionDTO;
 import com.xiao.sys.entity.SysOrg;
 import com.xiao.sys.entity.SysPosition;
@@ -64,14 +67,51 @@ public class SysPositionServiceImpl extends ServiceImpl<SysPositionMapper, SysPo
     }
 
     @Override
+    public PageResult<PositionDTO> getPositionPage(PositionDTO query) {
+        Page<SysPosition> page = new Page<>(
+                query.getPageNum() != null ? query.getPageNum() : 1,
+                query.getPageSize() != null ? query.getPageSize() : 10);
+        LambdaQueryWrapper<SysPosition> wrapper = new LambdaQueryWrapper<>();
+        if (query.getName() != null && !query.getName().isEmpty()) {
+            wrapper.and(w -> w.like(SysPosition::getPositionName, query.getName()));
+        }
+        if (query.getOrgId() != null) {
+            wrapper.and(w -> w.eq(SysPosition::getOrgId, query.getOrgId()));
+        }
+        wrapper.orderByAsc(SysPosition::getSortOrder).orderByAsc(SysPosition::getId);
+        Page<SysPosition> result = this.page(page, wrapper);
+
+        List<PositionDTO> dtoList = result.getRecords().stream().map(p -> {
+            PositionDTO dto = new PositionDTO();
+            BeanUtils.copyProperties(p, dto);
+            dto.setId(p.getId());
+            dto.setName(p.getPositionName());
+            dto.setCode(p.getPositionCode());
+            SysOrg org = sysOrgMapper.selectById(p.getOrgId());
+            if (org != null) {
+                dto.setOrgName(org.getOrgName());
+            }
+            return dto;
+        }).collect(Collectors.toList());
+        return PageResult.of(dtoList, result.getTotal(), result.getCurrent(), result.getSize());
+    }
+
+    @Override
     public SysPosition createPosition(PositionDTO dto) {
+        String positionCode = dto.getCode() != null ? dto.getCode() : dto.getPositionCode();
         LambdaQueryWrapper<SysPosition> codeWrapper = new LambdaQueryWrapper<>();
-        codeWrapper.eq(SysPosition::getPositionCode, dto.getPositionCode());
+        codeWrapper.eq(SysPosition::getPositionCode, positionCode);
         if (this.count(codeWrapper) > 0) {
             throw new BusinessException(ResultCode.POSITION_CODE_EXISTS);
         }
         SysPosition position = new SysPosition();
         BeanUtils.copyProperties(dto, position, "roleIds", "scopeType", "customOrgIds");
+        if (dto.getName() != null) {
+            position.setPositionName(dto.getName());
+        }
+        if (dto.getCode() != null) {
+            position.setPositionCode(dto.getCode());
+        }
         if (position.getSortOrder() == null) {
             position.setSortOrder(0);
         }
@@ -101,14 +141,21 @@ public class SysPositionServiceImpl extends ServiceImpl<SysPositionMapper, SysPo
         if (position == null) {
             throw new BusinessException(ResultCode.POSITION_NOT_FOUND);
         }
-        if (dto.getPositionCode() != null && !dto.getPositionCode().equals(position.getPositionCode())) {
+        String newCode = dto.getCode() != null ? dto.getCode() : dto.getPositionCode();
+        if (newCode != null && !newCode.equals(position.getPositionCode())) {
             LambdaQueryWrapper<SysPosition> codeWrapper = new LambdaQueryWrapper<>();
-            codeWrapper.eq(SysPosition::getPositionCode, dto.getPositionCode()).ne(SysPosition::getId, id);
+            codeWrapper.eq(SysPosition::getPositionCode, newCode).ne(SysPosition::getId, id);
             if (this.count(codeWrapper) > 0) {
                 throw new BusinessException(ResultCode.POSITION_CODE_EXISTS);
             }
         }
         BeanUtils.copyProperties(dto, position, "id", "roleIds", "scopeType", "customOrgIds");
+        if (dto.getName() != null) {
+            position.setPositionName(dto.getName());
+        }
+        if (dto.getCode() != null) {
+            position.setPositionCode(dto.getCode());
+        }
         position.setUpdatedAt(LocalDateTime.now());
         this.updateById(position);
         return position;

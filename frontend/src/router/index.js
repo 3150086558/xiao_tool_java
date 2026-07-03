@@ -55,9 +55,7 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     ...constantRoutes,
-    ...layoutRoutes,
-    // 兜底：未匹配路由进入 404（动态路由 addRoute 后再放行）
-    { path: '/:pathMatch(.*)*', redirect: '/404', hidden: true }
+    ...layoutRoutes
   ],
   scrollBehavior: () => ({ left: 0, top: 0 })
 })
@@ -116,6 +114,9 @@ router.beforeEach(async (to, from, next) => {
       router.addRoute(route)
       registeredRouteNames.add(route.name)
     })
+
+    // 添加兜底路由
+    router.addRoute({ path: '/:pathMatch(.*)*', redirect: '/404', hidden: true })
 
     // 重新导航，确保 addRoute 生效
     next({ ...to, replace: true })

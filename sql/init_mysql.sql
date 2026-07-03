@@ -176,24 +176,28 @@ CREATE TABLE IF NOT EXISTS records (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS todos (
-    id         INT PRIMARY KEY AUTO_INCREMENT,
-    user_id    INT NOT NULL,
-    title      VARCHAR(200) NOT NULL,
-    completed  TINYINT NOT NULL DEFAULT 0,
-    priority   VARCHAR(10) DEFAULT 'normal',
-    due_date   VARCHAR(20),
-    created_at VARCHAR(30),
-    updated_at VARCHAR(30),
+    id          INT PRIMARY KEY AUTO_INCREMENT,
+    user_id     INT NOT NULL,
+    org_id      INT,
+    title       VARCHAR(200) NOT NULL,
+    completed   INT NOT NULL DEFAULT 0,
+    priority    VARCHAR(20) DEFAULT 'normal',
+    due_date    VARCHAR(20),
+    remark      TEXT,
+    created_at  VARCHAR(30),
+    updated_at  VARCHAR(30),
     INDEX idx_todos_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS notes (
-    id         INT PRIMARY KEY AUTO_INCREMENT,
-    user_id    INT NOT NULL,
-    title      VARCHAR(200) NOT NULL,
-    content    TEXT,
-    created_at VARCHAR(30),
-    updated_at VARCHAR(30),
+    id          INT PRIMARY KEY AUTO_INCREMENT,
+    user_id     INT NOT NULL,
+    org_id      INT,
+    title       VARCHAR(200) NOT NULL,
+    content     TEXT,
+    tags        TEXT,
+    created_at  VARCHAR(30),
+    updated_at  VARCHAR(30),
     INDEX idx_notes_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

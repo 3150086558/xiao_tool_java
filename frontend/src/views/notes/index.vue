@@ -1,7 +1,6 @@
 <template>
   <div class="app-container">
     <el-row :gutter="16">
-      <!-- 左侧列表 -->
       <el-col :span="8">
         <el-card shadow="never" class="note-list-card">
           <template #header>
@@ -10,9 +9,19 @@
               <el-button type="primary" size="small" :icon="Plus" @click="handleAdd">新增</el-button>
             </div>
           </template>
-          <el-input v-model="searchText" placeholder="搜索标题" :prefix-icon="Search" clearable style="margin-bottom: 8px" @input="handleSearch" />
+
+          <el-input
+            v-model="searchText"
+            placeholder="搜索标题或内容"
+            :prefix-icon="Search"
+            clearable
+            style="margin-bottom: 8px"
+          />
+
           <div v-loading="loading" class="note-list">
-            <div v-if="!filteredList.length" class="empty-tip"><el-empty description="暂无备忘" /></div>
+            <div v-if="!filteredList.length" class="empty-tip">
+              <el-empty description="暂无备忘录" />
+            </div>
             <div
               v-for="item in filteredList"
               :key="item.id"
@@ -22,28 +31,25 @@
             >
               <div class="note-title">{{ item.title || '无标题' }}</div>
               <div class="note-time">{{ item.updateTime || item.createTime }}</div>
-              <div class="note-summary">{{ stripHtml(item.content) }}</div>
+              <div class="note-summary">{{ summarize(item.content) }}</div>
             </div>
           </div>
         </el-card>
       </el-col>
 
-      <!-- 右侧编辑 -->
       <el-col :span="16">
         <el-card shadow="never">
           <template #header>
             <div class="card-header">
-              <span>{{ isEditing ? (currentNote.id ? '编辑备忘' : '新增备忘') : '备忘详情' }}</span>
-              <div v-if="isEditing || currentNote.id">
-                <el-button type="primary" :icon="Check" @click="submitForm">保存</el-button>
+              <span>{{ currentNote.id ? '编辑备忘' : '新增备忘' }}</span>
+              <div>
+                <el-button type="primary" :icon="Check" :loading="submitLoading" @click="submitForm">保存</el-button>
                 <el-button v-if="currentNote.id" type="danger" :icon="Delete" @click="handleDelete(currentNote)">删除</el-button>
               </div>
             </div>
           </template>
-          <div v-if="!currentNote.id && !isEditing" class="empty-tip">
-            <el-empty description="请选择或新增一条备忘" />
-          </div>
-          <el-form v-else :model="currentNote" label-width="0">
+
+          <el-form :model="currentNote" label-width="0">
             <el-form-item>
               <el-input v-model="currentNote.title" placeholder="请输入标题" size="large" />
             </el-form-item>
@@ -57,13 +63,21 @@
               />
             </el-form-item>
             <el-form-item>
-              <el-tag v-for="t in currentNote.tags" :key="t" closable @close="removeTag(t)" style="margin-right: 6px">{{ t }}</el-tag>
+              <el-tag
+                v-for="tag in currentNote.tags"
+                :key="tag"
+                closable
+                style="margin-right: 6px"
+                @close="removeTag(tag)"
+              >
+                {{ tag }}
+              </el-tag>
               <el-input
                 v-if="tagInputVisible"
                 ref="tagInputRef"
                 v-model="tagValue"
                 size="small"
-                style="width: 100px"
+                style="width: 120px"
                 @keyup.enter="addTag"
                 @blur="addTag"
               />
@@ -77,133 +91,215 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, onMounted } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Delete, Check } from '@element-plus/icons-vue'
-import {
-  getNotePage,
-  createNote,
-  updateNote,
-  deleteNote
-} from '@/api/app/note'
+import { Check, Delete, Plus, Search } from '@element-plus/icons-vue'
+import { createNote, deleteNote, getNotePage, updateNote } from '@/api/app/note'
 
 const loading = ref(false)
+const submitLoading = ref(false)
 const noteList = ref([])
 const searchText = ref('')
-const filteredList = ref([])
-const isEditing = ref(false)
 const currentNote = reactive({
-  id: null, title: '', content: '', tags: [], createTime: '', updateTime: ''
+  id: null,
+  title: '',
+  content: '',
+  tags: [],
+  createTime: '',
+  updateTime: ''
 })
 
-async function loadData() {
+const tagInputVisible = ref(false)
+const tagValue = ref('')
+const tagInputRef = ref()
+
+const filteredList = computed(() => {
+  const keyword = searchText.value.trim()
+  if (!keyword) return noteList.value
+  return noteList.value.filter((item) => {
+    return [item.title, item.content].some((value) => String(value || '').includes(keyword))
+  })
+})
+
+function normalizeNote(row = {}) {
+  return {
+    id: row.id ?? null,
+    title: row.title || '',
+    content: row.content || '',
+    tags: Array.isArray(row.tags) ? [...row.tags] : [],
+    createTime: row.createTime || row.created_at || '',
+    updateTime: row.updateTime || row.updated_at || ''
+  }
+}
+
+function assignCurrentNote(note = {}) {
+  Object.assign(currentNote, normalizeNote(note))
+}
+
+function summarize(content) {
+  return String(content || '').replace(/\s+/g, ' ').slice(0, 48)
+}
+
+async function loadData(targetId = null) {
   loading.value = true
   try {
     const res = await getNotePage({ page: 1, size: 999 })
-    noteList.value = res.data?.records || []
-    filteredList.value = noteList.value
-  } catch (e) {
-    noteList.value = mockData()
-    filteredList.value = noteList.value
-  } finally { loading.value = false }
-}
+    noteList.value = (res.data?.records || []).map(normalizeNote)
 
-function mockData() {
-  return [
-    { id: 1, title: '项目周会要点', content: '1. 本周完成首页开发\n2. 下周开始接口联调\n3. 周五前提交测试报告', tags: ['工作', '会议'], createTime: '2026-06-01 10:00', updateTime: '2026-06-01 14:00' },
-    { id: 2, title: '读书笔记', content: '《代码整洁之道》读书笔记：函数应该短小精悍，只做一件事。', tags: ['学习'], createTime: '2026-06-02 09:00', updateTime: '2026-06-02 09:00' }
-  ]
-}
+    if (targetId) {
+      const target = noteList.value.find((item) => item.id === targetId)
+      if (target) {
+        assignCurrentNote(target)
+        return
+      }
+    }
 
-function stripHtml(str) {
-  if (!str) return ''
-  return str.replace(/\n/g, ' ').slice(0, 40)
-}
+    if (currentNote.id) {
+      const selected = noteList.value.find((item) => item.id === currentNote.id)
+      if (selected) {
+        assignCurrentNote(selected)
+        return
+      }
+    }
 
-function handleSearch() {
-  filteredList.value = noteList.value.filter((n) =>
-    (n.title || '').includes(searchText.value)
-  )
+    if (noteList.value.length) {
+      assignCurrentNote(noteList.value[0])
+    } else {
+      assignCurrentNote()
+    }
+  } catch (error) {
+    noteList.value = []
+    assignCurrentNote()
+    ElMessage.error(error.response?.data?.detail || error.message || '备忘录查询失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 function handleSelect(item) {
-  isEditing.value = false
-  Object.assign(currentNote, item, { tags: [...(item.tags || [])] })
+  assignCurrentNote(item)
 }
 
 function handleAdd() {
-  isEditing.value = true
-  Object.assign(currentNote, { id: null, title: '', content: '', tags: [], createTime: '', updateTime: '' })
+  assignCurrentNote()
+  searchText.value = ''
 }
 
 async function submitForm() {
-  if (!currentNote.title) {
+  const title = currentNote.title.trim()
+  if (!title) {
     ElMessage.warning('请输入标题')
     return
   }
+  submitLoading.value = true
   try {
-    const payload = { title: currentNote.title, content: currentNote.content, tags: currentNote.tags || [] }
+    const payload = {
+      title,
+      content: currentNote.content || '',
+      tags: JSON.stringify(Array.isArray(currentNote.tags) ? currentNote.tags : [])
+    }
+    let savedId = currentNote.id
     if (currentNote.id) {
-      await updateNote(currentNote.id, payload)
-      ElMessage.success('保存成功')
+      const res = await updateNote(currentNote.id, payload)
+      savedId = res.data?.id || currentNote.id
+      ElMessage.success('备忘录已保存')
     } else {
       const res = await createNote(payload)
-      const created = res.data
-      if (created && created.id) {
-        Object.assign(currentNote, created, { tags: [...(created.tags || [])] })
-      }
-      ElMessage.success('新增成功')
+      savedId = res.data?.id || null
+      ElMessage.success('备忘录已新增')
     }
-    loadData()
-  } catch (e) {
-    ElMessage.error('保存失败')
+    await loadData(savedId)
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail || error.message || '备忘录保存失败')
+  } finally {
+    submitLoading.value = false
   }
 }
 
 async function handleDelete(row) {
-  await ElMessageBox.confirm(`确定删除「${row.title || '该备忘'}」吗？`, '提示', { type: 'warning' })
-  await deleteNote(row.id)
-  ElMessage.success('删除成功')
-  isEditing.value = false
-  Object.assign(currentNote, { id: null, title: '', content: '', tags: [] })
-  loadData()
+  try {
+    await ElMessageBox.confirm(`确定删除“${row.title || '该备忘录'}”吗？`, '提示', { type: 'warning' })
+    await deleteNote(row.id)
+    ElMessage.success('删除成功')
+    await loadData()
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error.response?.data?.detail || error.message || '删除失败')
+    }
+  }
 }
 
-// 标签
-const tagInputVisible = ref(false)
-const tagValue = ref('')
-const tagInputRef = ref()
 function showTagInput() {
   tagInputVisible.value = true
-  nextTick(() => tagInputRef.value && tagInputRef.value.focus())
+  nextTick(() => tagInputRef.value?.focus())
 }
+
 function addTag() {
-  if (tagValue.value && !currentNote.tags.includes(tagValue.value)) {
-    currentNote.tags.push(tagValue.value)
+  const value = tagValue.value.trim()
+  if (value && !currentNote.tags.includes(value)) {
+    currentNote.tags.push(value)
   }
   tagInputVisible.value = false
   tagValue.value = ''
 }
-function removeTag(t) {
-  currentNote.tags = currentNote.tags.filter((x) => x !== t)
+
+function removeTag(tag) {
+  currentNote.tags = currentNote.tags.filter((item) => item !== tag)
 }
 
-onMounted(() => { loadData() })
+onMounted(loadData)
 </script>
 
 <style scoped>
-.card-header { display: flex; align-items: center; justify-content: space-between; }
-.note-list { max-height: 600px; overflow-y: auto; }
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.note-list {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
 .note-item {
   padding: 10px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background-color 0.2s ease;
 }
-.note-item:hover { background: #f5f7fa; }
-.note-item.active { background: #ecf5ff; border-left: 3px solid #409eff; }
-.note-title { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 4px; }
-.note-time { font-size: 12px; color: #c0c4cc; margin-bottom: 4px; }
-.note-summary { font-size: 12px; color: #909399; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.empty-tip { padding: 40px 0; }
+
+.note-item:hover {
+  background: #f5f7fa;
+}
+
+.note-item.active {
+  background: #ecf5ff;
+  border-left: 3px solid #409eff;
+}
+
+.note-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.note-time {
+  font-size: 12px;
+  color: #c0c4cc;
+  margin-bottom: 4px;
+}
+
+.note-summary {
+  font-size: 12px;
+  color: #909399;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-tip {
+  padding: 40px 0;
+}
 </style>

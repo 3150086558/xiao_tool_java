@@ -167,24 +167,28 @@ CREATE INDEX IF NOT EXISTS idx_records_date ON records(record_date);
 CREATE INDEX IF NOT EXISTS idx_records_org ON records(org_id);
 
 CREATE TABLE IF NOT EXISTS todos (
-    id         SERIAL PRIMARY KEY,
-    user_id    INTEGER NOT NULL,
-    title      VARCHAR(200) NOT NULL,
-    completed  SMALLINT NOT NULL DEFAULT 0,
-    priority   VARCHAR(10) DEFAULT 'normal',
-    due_date   VARCHAR(20),
-    created_at VARCHAR(30),
-    updated_at VARCHAR(30)
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER NOT NULL,
+    org_id      INTEGER,
+    title       VARCHAR(200) NOT NULL,
+    completed   INTEGER NOT NULL DEFAULT 0,
+    priority    VARCHAR(20) DEFAULT 'normal',
+    due_date    VARCHAR(20),
+    remark      TEXT,
+    created_at  VARCHAR(30),
+    updated_at  VARCHAR(30)
 );
 CREATE INDEX IF NOT EXISTS idx_todos_user ON todos(user_id);
 
 CREATE TABLE IF NOT EXISTS notes (
-    id         SERIAL PRIMARY KEY,
-    user_id    INTEGER NOT NULL,
-    title      VARCHAR(200) NOT NULL,
-    content    TEXT,
-    created_at VARCHAR(30),
-    updated_at VARCHAR(30)
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER NOT NULL,
+    org_id      INTEGER,
+    title       VARCHAR(200) NOT NULL,
+    content     TEXT,
+    tags        TEXT,
+    created_at  VARCHAR(30),
+    updated_at  VARCHAR(30)
 );
 CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
 
@@ -208,9 +212,9 @@ CREATE INDEX IF NOT EXISTS idx_db_conn_user ON db_connections(user_id);
 -- 3. 初始化数据
 -- ============================================================
 
--- 默认管理员（密码: Admin@123 的 bcrypt 哈希）
+-- 默认管理员（密码: admin123 的 bcrypt 哈希）
 INSERT INTO sys_user (username, password, real_name, status) VALUES
-('admin', '$2a$10$N.ZOn9G6/YLFixAOPMg/h.z7pCu6v2XyFDtC4q.jeeGm/TEZyj3C6', '系统管理员', 1)
+('admin', '$2b$12$QdePcM9JuwfrlV0nDiq5/e3YyLEiGNnI3qT1Y0BR59wbmPiZaowOa', '系统管理员', 1)
 ON CONFLICT (username) DO NOTHING;
 
 -- 根组织

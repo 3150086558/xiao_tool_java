@@ -29,8 +29,7 @@ public class PositionController {
         this.sysPositionService = sysPositionService;
     }
 
-    @GetMapping
-    @GetMapping("/list")
+    @GetMapping({"", "/list"})
     public Result<List<PositionDTO>> getPositionList(@RequestParam(required = false) Integer orgId) {
         return Result.success(sysPositionService.getPositionList(orgId));
     }

@@ -174,24 +174,28 @@ CREATE INDEX IF NOT EXISTS idx_records_date ON records(record_date);
 CREATE INDEX IF NOT EXISTS idx_records_org ON records(org_id);
 
 CREATE TABLE IF NOT EXISTS todos (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    INTEGER NOT NULL,
-    title      VARCHAR(200) NOT NULL,
-    completed  INTEGER NOT NULL DEFAULT 0,
-    priority   VARCHAR(10) DEFAULT 'normal',
-    due_date   VARCHAR(20),
-    created_at VARCHAR(30),
-    updated_at VARCHAR(30)
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL,
+    org_id      INTEGER,
+    title       VARCHAR(200) NOT NULL,
+    completed   INTEGER NOT NULL DEFAULT 0,
+    priority    VARCHAR(20) DEFAULT 'normal',
+    due_date    VARCHAR(20),
+    remark      TEXT,
+    created_at  VARCHAR(30),
+    updated_at  VARCHAR(30)
 );
 CREATE INDEX IF NOT EXISTS idx_todos_user ON todos(user_id);
 
 CREATE TABLE IF NOT EXISTS notes (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    INTEGER NOT NULL,
-    title      VARCHAR(200) NOT NULL,
-    content    TEXT,
-    created_at VARCHAR(30),
-    updated_at VARCHAR(30)
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL,
+    org_id      INTEGER,
+    title       VARCHAR(200) NOT NULL,
+    content     TEXT,
+    tags        TEXT,
+    created_at  VARCHAR(30),
+    updated_at  VARCHAR(30)
 );
 CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
 

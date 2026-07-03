@@ -46,14 +46,22 @@ service.interceptors.response.use(
   },
   (error) => {
     const status = error.response && error.response.status
+    const data = error.response && error.response.data
+    const detail = data?.detail || data?.message || data?.error || error.message
     if (status === 401) {
       handleUnauthorized()
     } else if (status === 403) {
-      ElMessage.error('没有权限访问该资源')
+      ElMessage.error(detail || '没有权限访问该资源')
+    } else if (status === 422) {
+      ElMessage.error(detail || '参数校验失败')
     } else if (status === 500) {
-      ElMessage.error('服务器内部错误')
+      ElMessage.error(detail || '服务器内部错误')
+    } else if (status === 404) {
+      ElMessage.error(detail || '请求的资源不存在')
+    } else if (status === 400) {
+      ElMessage.error(detail || '请求错误')
     } else {
-      ElMessage.error(error.message || '网络异常')
+      ElMessage.error(detail || '网络异常')
     }
     return Promise.reject(error)
   }

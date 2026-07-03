@@ -1,14 +1,7 @@
 package com.xiao.sys.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.List;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class PageResult<T> {
 
     private List<T> list;
@@ -25,5 +18,45 @@ public class PageResult<T> {
         result.setPageNum(pageNum);
         result.setPageSize(pageSize);
         return result;
+    }
+
+    public List<T> getList() {
+        return list;
+    }
+
+    public void setList(List<T> list) {
+        this.list = list;
+    }
+
+    public List<T> getRecords() {
+        return records;
+    }
+
+    public void setRecords(List<T> records) {
+        this.records = records;
+    }
+
+    public Long getTotal() {
+        return total;
+    }
+
+    public void setTotal(Long total) {
+        this.total = total;
+    }
+
+    public Long getPageNum() {
+        return pageNum;
+    }
+
+    public void setPageNum(Long pageNum) {
+        this.pageNum = pageNum;
+    }
+
+    public Long getPageSize() {
+        return pageSize;
+    }
+
+    public void setPageSize(Long pageSize) {
+        this.pageSize = pageSize;
     }
 }

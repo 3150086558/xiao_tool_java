@@ -6,8 +6,13 @@ import com.xiao.sys.entity.SysDictData;
 import com.xiao.sys.entity.SysDictType;
 import com.xiao.sys.service.SysDictService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -53,6 +58,48 @@ public class SysDictController {
         return Result.success(Map.of("ok", deleted));
     }
 
+    @PutMapping("/type/{id}/status")
+    public Result<Map<String, Boolean>> updateDictTypeStatus(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Integer> body) {
+        Integer status = body.get("status");
+        boolean updated = dictService.updateDictTypeStatus(id, status);
+        return Result.success(Map.of("ok", updated));
+    }
+
+    @GetMapping("/type/export")
+    public ResponseEntity<byte[]> exportDictTypes() {
+        byte[] data = dictService.exportDictTypes();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "dict-types.xlsx");
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    @GetMapping("/type/template")
+    public ResponseEntity<byte[]> downloadDictTypeTemplate() {
+        byte[] data = dictService.downloadDictTypeTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "dict-type-template.xlsx");
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    @PostMapping("/type/import")
+    public Result<String> importDictTypes(@RequestParam("file") MultipartFile file) {
+        String filename = file.getOriginalFilename();
+        if (filename == null || (!filename.toLowerCase().endsWith(".xlsx") && !filename.toLowerCase().endsWith(".xls"))) {
+            return Result.fail(400, "请上传 Excel 文件（.xlsx）");
+        }
+        try {
+            byte[] fileData = file.getBytes();
+            String result = dictService.importDictTypes(fileData, filename);
+            return Result.success(result);
+        } catch (IOException e) {
+            return Result.fail(400, "文件读取失败：" + e.getMessage());
+        }
+    }
+
     @GetMapping("/data/page")
     public Result<Map<String, Object>> listDictData(
             @RequestParam(defaultValue = "1") Integer page,
@@ -86,5 +133,49 @@ public class SysDictController {
     public Result<Map<String, Boolean>> deleteDictData(@PathVariable Integer id) {
         boolean deleted = dictService.deleteDictData(id);
         return Result.success(Map.of("ok", deleted));
+    }
+
+    @PutMapping("/data/{id}/status")
+    public Result<Map<String, Boolean>> updateDictDataStatus(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Integer> body) {
+        Integer status = body.get("status");
+        boolean updated = dictService.updateDictDataStatus(id, status);
+        return Result.success(Map.of("ok", updated));
+    }
+
+    @GetMapping("/data/export")
+    public ResponseEntity<byte[]> exportDictData(@RequestParam(required = false) String dictCode) {
+        byte[] data = dictService.exportDictData(dictCode);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "dict-data.xlsx");
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    @GetMapping("/data/template")
+    public ResponseEntity<byte[]> downloadDictDataTemplate() {
+        byte[] data = dictService.downloadDictDataTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "dict-data-template.xlsx");
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    @PostMapping("/data/import")
+    public Result<String> importDictData(
+            @RequestParam(required = false) String dictCode,
+            @RequestParam("file") MultipartFile file) {
+        String filename = file.getOriginalFilename();
+        if (filename == null || (!filename.toLowerCase().endsWith(".xlsx") && !filename.toLowerCase().endsWith(".xls"))) {
+            return Result.fail(400, "请上传 Excel 文件（.xlsx）");
+        }
+        try {
+            byte[] fileData = file.getBytes();
+            String result = dictService.importDictData(dictCode, fileData, filename);
+            return Result.success(result);
+        } catch (IOException e) {
+            return Result.fail(400, "文件读取失败：" + e.getMessage());
+        }
     }
 }

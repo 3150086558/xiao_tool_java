@@ -43,3 +43,33 @@ export function toggleTodoDone(id, data) {
     data
   })
 }
+
+// 导出待办
+export function exportTodo(params) {
+  return request({
+    url: '/api/app/todo/export',
+    method: 'get',
+    params,
+    responseType: 'blob'
+  })
+}
+
+// 下载导入模板
+export function downloadTodoTemplate() {
+  return request({
+    url: '/api/app/todo/template',
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+// 导入待办
+export function importTodo(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/api/app/todo/import',
+    method: 'post',
+    data: formData
+  })
+}

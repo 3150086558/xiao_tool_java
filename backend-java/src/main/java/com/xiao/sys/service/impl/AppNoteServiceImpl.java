@@ -9,9 +9,13 @@ import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.entity.AppNote;
 import com.xiao.sys.mapper.AppNoteMapper;
 import com.xiao.sys.service.AppNoteService;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -127,6 +131,62 @@ public class AppNoteServiceImpl extends ServiceImpl<AppNoteMapper, AppNote> impl
         }
 
         return this.removeById(noteId);
+    }
+
+    @Override
+    public byte[] exportNotes(Integer userId, String keyword, String type) {
+        LambdaQueryWrapper<AppNote> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AppNote::getUserId, userId);
+
+        if (type != null && !type.trim().isEmpty()) {
+            wrapper.eq(AppNote::getNoteType, type.trim());
+        }
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String kw = keyword.trim().toLowerCase();
+            wrapper.and(w -> w.like(AppNote::getTitle, kw).or().like(AppNote::getContent, kw));
+        }
+
+        wrapper.orderByDesc(AppNote::getUpdatedAt);
+        List<AppNote> notes = this.list(wrapper);
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("备忘录");
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFont(headerFont);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            String[] headers = {"标题", "类型", "内容", "标签", "创建时间", "更新时间"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            for (int i = 0; i < notes.size(); i++) {
+                AppNote note = notes.get(i);
+                Row row = sheet.createRow(i + 1);
+                row.createCell(0).setCellValue(note.getTitle() != null ? note.getTitle() : "");
+                row.createCell(1).setCellValue(note.getNoteType() != null ? note.getNoteType() : "");
+                row.createCell(2).setCellValue(note.getContent() != null ? note.getContent() : "");
+                row.createCell(3).setCellValue(note.getTags() != null ? note.getTags() : "");
+                row.createCell(4).setCellValue(note.getCreatedAt() != null ? note.getCreatedAt() : "");
+                row.createCell(5).setCellValue(note.getUpdatedAt() != null ? note.getUpdatedAt() : "");
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("导出失败", e);
+        }
     }
 
     /**

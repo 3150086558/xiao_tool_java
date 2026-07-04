@@ -34,3 +34,13 @@ export function deleteNote(id) {
     method: 'delete'
   })
 }
+
+// 导出备忘录
+export function exportNotes(params) {
+  return request({
+    url: '/api/app/note/export',
+    method: 'get',
+    params,
+    responseType: 'blob'
+  })
+}

@@ -19,6 +19,19 @@
               @clear="loadTypeList"
             />
             <el-button type="primary" :icon="Plus" @click="handleTypeAdd">新增</el-button>
+            <el-dropdown @command="handleTypeCommand">
+              <el-button>
+                更多
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="import">导入</el-dropdown-item>
+                  <el-dropdown-item command="export">导出</el-dropdown-item>
+                  <el-dropdown-item command="template">下载模板</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
 
           <el-table
@@ -32,14 +45,17 @@
           >
             <el-table-column prop="dictName" label="字典名称" show-overflow-tooltip />
             <el-table-column prop="dictCode" label="字典编码" width="120" show-overflow-tooltip />
-            <el-table-column prop="status" label="状态" width="60" align="center">
+            <el-table-column prop="status" label="状态" width="80" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-                  {{ row.status === 1 ? '启用' : '禁用' }}
-                </el-tag>
+                <el-switch
+                  v-model="row.status"
+                  :active-value="1"
+                  :inactive-value="0"
+                  @change="handleTypeStatusChange(row)"
+                />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="120" align="center">
+            <el-table-column label="操作" width="140" align="center">
               <template #default="{ row }">
                 <el-button link type="primary" @click.stop="handleTypeEdit(row)">编辑</el-button>
                 <el-button link type="danger" @click.stop="handleTypeDelete(row)">删除</el-button>
@@ -87,6 +103,19 @@
               @clear="loadDataList"
             />
             <el-button type="primary" :icon="Plus" :disabled="!currentType" @click="handleDataAdd">新增</el-button>
+            <el-dropdown @command="handleDataCommand" :disabled="!currentType">
+              <el-button :disabled="!currentType">
+                更多
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="import">导入</el-dropdown-item>
+                  <el-dropdown-item command="export">导出</el-dropdown-item>
+                  <el-dropdown-item command="template">下载模板</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
 
           <el-table
@@ -102,9 +131,12 @@
             <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
             <el-table-column prop="status" label="状态" width="80" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-                  {{ row.status === 1 ? '启用' : '禁用' }}
-                </el-tag>
+                <el-switch
+                  v-model="row.status"
+                  :active-value="1"
+                  :inactive-value="0"
+                  @change="handleDataStatusChange(row)"
+                />
               </template>
             </el-table-column>
             <el-table-column prop="remark" label="备注" min-width="150" show-overflow-tooltip />
@@ -186,22 +218,51 @@
         <el-button type="primary" :loading="dataSubmitLoading" @click="submitDataForm">确定</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="importDialogVisible" :title="importDialogTitle" width="480px">
+      <el-upload
+        ref="uploadRef"
+        :action="importUploadUrl"
+        :auto-upload="false"
+        :limit="1"
+        accept=".xlsx,.xls"
+        :on-exceed="handleImportExceed"
+        :file-list="importFileList"
+      >
+        <el-button type="primary">选择文件</el-button>
+        <template #tip>
+          <div class="el-upload__tip">只能上传 xlsx/xls 文件，且不超过 10MB</div>
+        </template>
+      </el-upload>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importLoading" @click="submitImport">确认导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
+import { Plus, Search, ArrowDown } from '@element-plus/icons-vue'
 import {
   getDictTypePage,
   createDictType,
   updateDictType,
   deleteDictType,
+  updateDictTypeStatus,
+  exportDictType,
+  downloadDictTypeTemplate,
+  importDictType,
   getDictDataPage,
   createDictData,
   updateDictData,
-  deleteDictData
+  deleteDictData,
+  updateDictDataStatus,
+  exportDictData,
+  downloadDictDataTemplate,
+  importDictData
 } from '@/api/system/dict'
 
 const typeLoading = ref(false)
@@ -343,6 +404,9 @@ function handleTypeEdit(row) {
     status: row.status
   })
   typeDialogVisible.value = true
+  setTimeout(() => {
+    typeFormRef.value?.clearValidate()
+  }, 0)
 }
 
 function resetTypeForm() {
@@ -491,6 +555,145 @@ async function handleDataMoveDown(row) {
   }
 }
 
+const importDialogVisible = ref(false)
+const importDialogTitle = ref('')
+const importLoading = ref(false)
+const importType = ref('') // 'type' or 'data'
+const importFileList = ref([])
+const uploadRef = ref()
+const importUploadUrl = ref('')
+
+function handleTypeCommand(cmd) {
+  if (cmd === 'import') {
+    importType.value = 'type'
+    importDialogTitle.value = '导入字典类型'
+    importFileList.value = []
+    importDialogVisible.value = true
+  } else if (cmd === 'export') {
+    handleExportType()
+  } else if (cmd === 'template') {
+    handleDownloadTypeTemplate()
+  }
+}
+
+function handleDataCommand(cmd) {
+  if (cmd === 'import') {
+    importType.value = 'data'
+    importDialogTitle.value = '导入字典数据'
+    importFileList.value = []
+    importDialogVisible.value = true
+  } else if (cmd === 'export') {
+    handleExportData()
+  } else if (cmd === 'template') {
+    handleDownloadDataTemplate()
+  }
+}
+
+async function handleTypeStatusChange(row) {
+  try {
+    await updateDictTypeStatus(row.id, row.status)
+    ElMessage.success(row.status === 1 ? '已启用' : '已停用')
+  } catch (e) {
+    row.status = row.status === 1 ? 0 : 1
+    ElMessage.error('操作失败')
+  }
+}
+
+async function handleDataStatusChange(row) {
+  try {
+    await updateDictDataStatus(row.id, row.status)
+    ElMessage.success(row.status === 1 ? '已启用' : '已停用')
+  } catch (e) {
+    row.status = row.status === 1 ? 0 : 1
+    ElMessage.error('操作失败')
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = window.URL.createObjectURL(new Blob([blob]))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  window.URL.revokeObjectURL(url)
+}
+
+async function handleExportType() {
+  try {
+    const res = await exportDictType()
+    downloadBlob(res.data, 'dict-types.xlsx')
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  }
+}
+
+async function handleDownloadTypeTemplate() {
+  try {
+    const res = await downloadDictTypeTemplate()
+    downloadBlob(res.data, 'dict-type-template.xlsx')
+    ElMessage.success('模板下载成功')
+  } catch (e) {
+    ElMessage.error('模板下载失败')
+  }
+}
+
+async function handleExportData() {
+  if (!currentType.value) {
+    ElMessage.warning('请先选择字典类型')
+    return
+  }
+  try {
+    const res = await exportDictData(currentType.value.dictCode)
+    downloadBlob(res.data, `dict-data-${currentType.value.dictCode}.xlsx`)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  }
+}
+
+async function handleDownloadDataTemplate() {
+  try {
+    const res = await downloadDictDataTemplate()
+    downloadBlob(res.data, 'dict-data-template.xlsx')
+    ElMessage.success('模板下载成功')
+  } catch (e) {
+    ElMessage.error('模板下载失败')
+  }
+}
+
+function handleImportExceed() {
+  ElMessage.warning('只能上传一个文件')
+}
+
+async function submitImport() {
+  if (importFileList.value.length === 0) {
+    ElMessage.warning('请选择文件')
+    return
+  }
+  importLoading.value = true
+  try {
+    const file = importFileList.value[0].raw
+    let result
+    if (importType.value === 'type') {
+      result = await importDictType(file)
+    } else {
+      result = await importDictData(currentType.value?.dictCode, file)
+    }
+    ElMessage.success(result.data || '导入成功')
+    importDialogVisible.value = false
+    if (importType.value === 'type') {
+      loadTypeList()
+    } else {
+      loadDataList()
+    }
+  } catch (e) {
+    ElMessage.error(e.response?.data?.detail || e.message || '导入失败')
+  } finally {
+    importLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadTypeList()
 })
@@ -499,12 +702,15 @@ onMounted(() => {
 <style scoped>
 .dict-container {
   height: 100%;
+  padding: 16px;
+  background: #f5f7fa;
 }
 .left-panel,
 .right-panel {
-  height: calc(100vh - 140px);
+  height: calc(100vh - 172px);
   display: flex;
   flex-direction: column;
+  border-radius: 8px;
 }
 .left-panel :deep(.el-card__body),
 .right-panel :deep(.el-card__body) {
@@ -512,6 +718,19 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 16px;
+}
+.left-panel :deep(.el-card__header),
+.right-panel :deep(.el-card__header) {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px 8px 0 0;
+}
+.left-panel :deep(.el-card__header) .panel-title,
+.right-panel :deep(.el-card__header) .panel-title {
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
 }
 .panel-header {
   display: flex;
@@ -525,20 +744,35 @@ onMounted(() => {
 .current-type-label {
   font-weight: normal;
   font-size: 13px;
-  color: #909399;
+  color: rgba(255, 255, 255, 0.85);
   margin-left: 8px;
 }
 .search-bar {
   display: flex;
   gap: 8px;
   align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 .search-bar .el-input {
   flex: 1;
+  min-width: 180px;
 }
 .pagination-container {
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+}
+:deep(.el-table) {
+  border-radius: 6px;
+  overflow: hidden;
+}
+:deep(.el-table th) {
+  background: #f8f9fa;
+  color: #303133;
+  font-weight: 600;
+}
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background: #fafafa;
 }
 </style>

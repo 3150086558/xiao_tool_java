@@ -27,12 +27,33 @@ let isReloginShown = false
 
 // 响应拦截器：统一处理错误
 service.interceptors.response.use(
-  (response) => {
-    const res = response.data
-    // 二进制流直接返回
+  async (response) => {
+    // 处理 blob 类型响应，检查是否是 JSON 错误
     if (response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer') {
+      const blob = response.data
+      // 检查 blob 是不是 JSON 错误
+      if (blob.type === 'application/json' || blob.type === '') {
+        try {
+          const text = await new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.readAsText(blob)
+          })
+          const json = JSON.parse(text)
+          if (json.code !== undefined && json.code !== 0 && json.code !== 200) {
+            ElMessage.error(json.message || '请求失败')
+            if (json.code === 401) {
+              handleUnauthorized()
+            }
+            return Promise.reject(new Error(json.message || 'Error'))
+          }
+        } catch (e) {
+          // 不是 JSON，是正常的二进制数据
+        }
+      }
       return response
     }
+    const res = response.data
     // 约定后端返回 { code, message, data }
     if (res.code !== undefined && res.code !== 0 && res.code !== 200) {
       ElMessage.error(res.message || '请求失败')

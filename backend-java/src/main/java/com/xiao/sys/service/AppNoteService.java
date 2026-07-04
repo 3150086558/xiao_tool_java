@@ -29,4 +29,9 @@ public interface AppNoteService extends IService<AppNote> {
      * 删除备忘录
      */
     boolean deleteNote(Integer userId, Integer noteId);
+
+    /**
+     * 导出备忘录
+     */
+    byte[] exportNotes(Integer userId, String keyword, String type);
 }

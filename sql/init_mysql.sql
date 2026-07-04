@@ -184,6 +184,9 @@ CREATE TABLE IF NOT EXISTS todos (
     priority    VARCHAR(20) DEFAULT 'normal',
     due_date    VARCHAR(20),
     remark      TEXT,
+    creator     VARCHAR(50) DEFAULT '',
+    assignee    VARCHAR(50) DEFAULT '',
+    completed_at VARCHAR(30),
     created_at  VARCHAR(30),
     updated_at  VARCHAR(30),
     INDEX idx_todos_user (user_id)
@@ -195,6 +198,7 @@ CREATE TABLE IF NOT EXISTS notes (
     org_id      INT,
     title       VARCHAR(200) NOT NULL,
     content     TEXT,
+    note_type   VARCHAR(50) DEFAULT '',
     tags        TEXT,
     created_at  VARCHAR(30),
     updated_at  VARCHAR(30),

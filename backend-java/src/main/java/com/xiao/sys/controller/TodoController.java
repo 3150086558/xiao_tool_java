@@ -5,6 +5,9 @@ import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.entity.AppTodo;
 import com.xiao.sys.security.LoginUser;
 import com.xiao.sys.service.AppTodoService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,7 +19,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -93,6 +98,53 @@ public class TodoController {
         }
         AppTodo result = appTodoService.toggleDone(userId, id, completed);
         return Result.success(result);
+    }
+
+    /**
+     * 导出待办事项
+     */
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportTodos(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority) {
+        Integer userId = getCurrentUserId();
+        byte[] data = appTodoService.exportTodos(userId, keyword, status, priority);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "todos.xlsx");
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    /**
+     * 下载待办事项导入模板
+     */
+    @GetMapping("/template")
+    public ResponseEntity<byte[]> downloadTodoTemplate() {
+        byte[] data = appTodoService.downloadTodoTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "todo-template.xlsx");
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    /**
+     * 导入待办事项
+     */
+    @PostMapping("/import")
+    public Result<Map<String, Object>> importTodos(@RequestParam("file") MultipartFile file) {
+        Integer userId = getCurrentUserId();
+        String filename = file.getOriginalFilename();
+        if (filename == null || (!filename.toLowerCase().endsWith(".xlsx") && !filename.toLowerCase().endsWith(".xls"))) {
+            return Result.fail(400, "请上传 Excel 文件（.xlsx）");
+        }
+        try {
+            byte[] fileData = file.getBytes();
+            Map<String, Object> result = appTodoService.importTodos(userId, fileData, filename);
+            return Result.success(result);
+        } catch (IOException e) {
+            return Result.fail(400, "文件读取失败：" + e.getMessage());
+        }
     }
 
     /**

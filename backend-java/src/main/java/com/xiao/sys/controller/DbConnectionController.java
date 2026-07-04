@@ -73,6 +73,64 @@ public class DbConnectionController {
         return Result.success(Map.of("success", success));
     }
 
+    /**
+     * 通过已保存的连接ID测试连接
+     */
+    @PostMapping("/{id}/test")
+    public Result<Map<String, Object>> testConnectionById(@PathVariable Integer id) {
+        Integer userId = getCurrentUserId();
+        boolean success = dbConnectionService.testConnectionById(id, userId);
+        return Result.success(Map.of("success", success));
+    }
+
+    /**
+     * 获取数据库表列表
+     */
+    @GetMapping("/{id}/tables")
+    public Result<List<Map<String, Object>>> getTableList(@PathVariable Integer id) {
+        Integer userId = getCurrentUserId();
+        List<Map<String, Object>> tables = dbConnectionService.getTableList(id, userId);
+        return Result.success(tables);
+    }
+
+    /**
+     * 获取表结构
+     */
+    @GetMapping("/{id}/tables/{tableName}/structure")
+    public Result<List<Map<String, Object>>> getTableStructure(
+            @PathVariable Integer id,
+            @PathVariable String tableName) {
+        Integer userId = getCurrentUserId();
+        List<Map<String, Object>> structure = dbConnectionService.getTableStructure(id, userId, tableName);
+        return Result.success(structure);
+    }
+
+    /**
+     * 预览表数据
+     */
+    @GetMapping("/{id}/tables/{tableName}/preview")
+    public Result<Map<String, Object>> previewTableData(
+            @PathVariable Integer id,
+            @PathVariable String tableName,
+            @RequestParam(defaultValue = "100") Integer limit) {
+        Integer userId = getCurrentUserId();
+        Map<String, Object> data = dbConnectionService.previewTableData(id, userId, tableName, limit);
+        return Result.success(data);
+    }
+
+    /**
+     * 执行 SQL 查询
+     */
+    @PostMapping("/{id}/execute")
+    public Result<Map<String, Object>> executeQuery(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Object> body) {
+        Integer userId = getCurrentUserId();
+        String sql = getStr(body, "sql");
+        Map<String, Object> result = dbConnectionService.executeQuery(id, userId, sql);
+        return Result.success(result);
+    }
+
     private AppDbConnection mapToEntity(Map<String, Object> body) {
         AppDbConnection conn = new AppDbConnection();
         conn.setName(getStr(body, "name"));

@@ -38,6 +38,40 @@ export function deleteDictType(id) {
   })
 }
 
+export function updateDictTypeStatus(id, status) {
+  return request({
+    url: '/api/sys/dict/type/' + id + '/status',
+    method: 'put',
+    data: { status }
+  })
+}
+
+export function exportDictType() {
+  return request({
+    url: '/api/sys/dict/type/export',
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+export function downloadDictTypeTemplate() {
+  return request({
+    url: '/api/sys/dict/type/template',
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+export function importDictType(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/api/sys/dict/type/import',
+    method: 'post',
+    data: formData
+  })
+}
+
 export function getDictDataPage(params) {
   return request({
     url: '/api/sys/dict/data/page',
@@ -73,5 +107,41 @@ export function deleteDictData(id) {
   return request({
     url: '/api/sys/dict/data/' + id,
     method: 'delete'
+  })
+}
+
+export function updateDictDataStatus(id, status) {
+  return request({
+    url: '/api/sys/dict/data/' + id + '/status',
+    method: 'put',
+    data: { status }
+  })
+}
+
+export function exportDictData(dictCode) {
+  return request({
+    url: '/api/sys/dict/data/export',
+    method: 'get',
+    params: { dictCode },
+    responseType: 'blob'
+  })
+}
+
+export function downloadDictDataTemplate() {
+  return request({
+    url: '/api/sys/dict/data/template',
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+export function importDictData(dictCode, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/api/sys/dict/data/import',
+    method: 'post',
+    params: { dictCode },
+    data: formData
   })
 }

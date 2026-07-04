@@ -5,6 +5,9 @@ import com.xiao.sys.dto.NoteDTO;
 import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.security.LoginUser;
 import com.xiao.sys.service.AppNoteService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -82,6 +85,22 @@ public class NoteController {
         Map<String, Object> result = new HashMap<>();
         result.put("ok", deleted);
         return Result.success(result);
+    }
+
+    /**
+     * 导出备忘录
+     * GET /api/app/note/export
+     */
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportNotes(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String type) {
+        Integer userId = getCurrentUserId();
+        byte[] data = appNoteService.exportNotes(userId, keyword, type);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "notes.xlsx");
+        return ResponseEntity.ok().headers(headers).body(data);
     }
 
     /**

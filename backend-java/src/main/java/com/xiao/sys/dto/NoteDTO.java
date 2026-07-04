@@ -1,14 +1,22 @@
 package com.xiao.sys.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 /**
- * 备忘录数据传输对象
+ * 备忘录数据传输对象。
  */
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class NoteDTO {
 
     private Integer id;
 
+    @JsonAlias("userId")
     private Integer userId;
 
+    @JsonAlias("orgId")
     private Integer orgId;
 
     private String title;
@@ -17,10 +25,14 @@ public class NoteDTO {
 
     private String tags;
 
+    @JsonProperty("note_type")
+    @JsonAlias("noteType")
     private String noteType;
 
+    @JsonAlias({"createTime", "created_at"})
     private String createTime;
 
+    @JsonAlias({"updateTime", "updated_at"})
     private String updateTime;
 
     private Integer page;

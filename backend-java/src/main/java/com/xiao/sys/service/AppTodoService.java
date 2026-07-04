@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.xiao.sys.dto.PageResult;
 import com.xiao.sys.entity.AppTodo;
 
+import java.util.Map;
+
 /**
  * 待办事项 Service 接口
  */
@@ -53,4 +55,29 @@ public interface AppTodoService extends IService<AppTodo> {
      * @return 更新后的待办事项
      */
     AppTodo toggleDone(Integer userId, Integer todoId, Integer completed);
+
+    /**
+     * 导出待办事项
+     * @param userId 用户ID
+     * @param keyword 关键词
+     * @param status 状态过滤
+     * @param priority 优先级过滤
+     * @return Excel 文件字节数组
+     */
+    byte[] exportTodos(Integer userId, String keyword, String status, String priority);
+
+    /**
+     * 下载待办事项导入模板
+     * @return Excel 文件字节数组
+     */
+    byte[] downloadTodoTemplate();
+
+    /**
+     * 导入待办事项
+     * @param userId 用户ID
+     * @param fileData 文件数据
+     * @param fileName 文件名
+     * @return 导入结果，包含成功数量 count
+     */
+    Map<String, Object> importTodos(Integer userId, byte[] fileData, String fileName);
 }

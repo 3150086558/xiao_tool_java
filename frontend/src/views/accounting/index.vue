@@ -270,9 +270,9 @@ function normalizeRecord(row = {}) {
   return {
     id: row.id,
     date: row.record_date || row.date || '',
-    item: row.category || row.item || '',
+    item: row.note || row.item || row.remark || '',
     amount: Number(row.amount || 0),
-    category: row.sub_category || row.category || '',
+    category: row.category || row.sub_category || '',
     type: row.type || 'expense',
     payment: row.account || row.payment || '',
     remark: row.note || row.remark || '',
@@ -369,11 +369,10 @@ async function submitForm() {
     const payload = {
       record_date: form.date,
       type: form.type,
-      category: form.item,
-      sub_category: form.category,
+      category: form.category,
       amount: form.amount,
       account: form.payment,
-      note: form.remark
+      note: form.item
     }
     if (form.id) {
       await updateAccounting(form.id, payload)
@@ -515,7 +514,7 @@ async function handleExport() {
     link.click()
     window.URL.revokeObjectURL(url)
     finishProgress('导出完成')
-    ElMessage.success('导出成功')
+    ElMessage.success('导出成功，文件已下载到浏览器默认下载目录')
   } catch (error) {
     closeProgress()
     ElMessage.error(error.response?.data?.error || error.response?.data?.detail || error.message || '导出失败')
@@ -532,6 +531,7 @@ async function handleDownloadTemplate() {
     link.download = '记账导入模板.xlsx'
     link.click()
     window.URL.revokeObjectURL(url)
+    ElMessage.success('模板下载成功，文件已下载到浏览器默认下载目录')
   } catch (error) {
     ElMessage.error(error.response?.data?.error || error.response?.data?.detail || error.message || '模板下载失败')
   }
@@ -539,7 +539,7 @@ async function handleDownloadTemplate() {
 
 async function loadCategories() {
   try {
-    const res = await getDictDataByCode('accounting_category')
+    const res = await getDictDataByCode('account_category')
     if (res.code === 0 || res.code === 200) {
       const list = res.data || []
       categories.value = list.map((item) => ({

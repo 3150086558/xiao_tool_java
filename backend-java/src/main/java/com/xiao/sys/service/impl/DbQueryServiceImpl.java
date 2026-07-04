@@ -3,28 +3,37 @@ package com.xiao.sys.service.impl;
 import com.xiao.sys.service.DbQueryService;
 import org.springframework.stereotype.Service;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
- * 数据库查询服务实现
+ * 数据库查询服务实现。
  */
 @Service
 public class DbQueryServiceImpl implements DbQueryService {
 
     @Override
     public List<String> listTables(Map<String, Object> config) throws Exception {
-        String dbType = getString(config, "db_type", "mysql");
+        String dbType = normalizeDbType(getString(config, "db_type", "mysql"));
         List<String> tables = new ArrayList<>();
         Connection conn = null;
         try {
             conn = getConnection(config, dbType);
             DatabaseMetaData metaData = conn.getMetaData();
             String catalog = conn.getCatalog();
-            String schemaPattern = null;
-            if ("postgresql".equals(dbType)) {
-                schemaPattern = "public";
-            }
+            String schemaPattern = "postgresql".equals(dbType) ? "public" : null;
             ResultSet rs = metaData.getTables(catalog, schemaPattern, "%", new String[]{"TABLE"});
             while (rs.next()) {
                 tables.add(rs.getString("TABLE_NAME"));
@@ -39,7 +48,7 @@ public class DbQueryServiceImpl implements DbQueryService {
 
     @Override
     public Map<String, Object> executeQuery(Map<String, Object> config, String sql) throws Exception {
-        String dbType = getString(config, "db_type", "mysql");
+        String dbType = normalizeDbType(getString(config, "db_type", "mysql"));
         Map<String, Object> result = new HashMap<>();
         List<String> columns = new ArrayList<>();
         List<Map<String, Object>> rows = new ArrayList<>();
@@ -73,8 +82,18 @@ public class DbQueryServiceImpl implements DbQueryService {
                 result.put("rows", Arrays.asList(Collections.singletonMap("影响行数", updateCount)));
             }
         } finally {
-            if (rs != null) { try { rs.close(); } catch (Exception ignored) {} }
-            if (stmt != null) { try { stmt.close(); } catch (Exception ignored) {} }
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (Exception ignored) {
+                }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (Exception ignored) {
+                }
+            }
             closeConnection(conn);
         }
         return result;
@@ -82,17 +101,14 @@ public class DbQueryServiceImpl implements DbQueryService {
 
     @Override
     public List<Map<String, Object>> getTableSchema(Map<String, Object> config, String table) throws Exception {
-        String dbType = getString(config, "db_type", "mysql");
+        String dbType = normalizeDbType(getString(config, "db_type", "mysql"));
         List<Map<String, Object>> columns = new ArrayList<>();
         Connection conn = null;
         try {
             conn = getConnection(config, dbType);
             DatabaseMetaData metaData = conn.getMetaData();
             String catalog = conn.getCatalog();
-            String schemaPattern = null;
-            if ("postgresql".equals(dbType)) {
-                schemaPattern = "public";
-            }
+            String schemaPattern = "postgresql".equals(dbType) ? "public" : null;
             ResultSet rs = metaData.getColumns(catalog, schemaPattern, table, "%");
             while (rs.next()) {
                 Map<String, Object> col = new LinkedHashMap<>();
@@ -110,6 +126,7 @@ public class DbQueryServiceImpl implements DbQueryService {
     }
 
     private Connection getConnection(Map<String, Object> config, String dbType) throws Exception {
+        dbType = normalizeDbType(dbType);
         String url;
         String driver;
         String username = getString(config, "username", "");
@@ -141,7 +158,10 @@ public class DbQueryServiceImpl implements DbQueryService {
 
     private void closeConnection(Connection conn) {
         if (conn != null) {
-            try { conn.close(); } catch (Exception ignored) {}
+            try {
+                conn.close();
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -160,5 +180,15 @@ public class DbQueryServiceImpl implements DbQueryService {
         } catch (Exception e) {
             return def;
         }
+    }
+
+    private String normalizeDbType(String dbType) {
+        if (dbType == null || dbType.isBlank()) {
+            return "mysql";
+        }
+        if ("postgres".equalsIgnoreCase(dbType)) {
+            return "postgresql";
+        }
+        return dbType.toLowerCase(Locale.ROOT);
     }
 }

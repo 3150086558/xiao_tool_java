@@ -89,6 +89,9 @@
 
     <el-dialog v-model="importDialogVisible" title="导入待办事项" width="480px" @close="resetImport">
       <div class="import-content">
+        <div class="template-tip">
+          <el-button type="primary" link :icon="Download" @click="handleDownloadTemplate">下载导入模板</el-button>
+        </div>
         <el-upload
           ref="uploadRef"
           class="import-upload"
@@ -163,7 +166,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Download, Edit, Plus, Refresh, Search, Upload, UploadFilled } from '@element-plus/icons-vue'
-import { createTodo, deleteTodo, getTodoPage, toggleTodoDone, updateTodo } from '@/api/app/todo'
+import { createTodo, deleteTodo, getTodoPage, toggleTodoDone, updateTodo, exportTodo, importTodo, downloadTodoTemplate } from '@/api/app/todo'
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -343,13 +346,63 @@ async function handleDelete(row) {
   }
 }
 
-async function handleImport() {
-  ElMessage.info('导入功能开发中')
+async function handleImport(file) {
+  try {
+    const res = await importTodo(file)
+    if (res.code === 200) {
+      ElMessage.success(`导入成功，共 ${res.data?.count || 0} 条数据`)
+      importDialogVisible.value = false
+      loadData()
+    } else {
+      ElMessage.error(res.detail || '导入失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error.response?.data?.detail || error.message || '导入失败')
+    }
+  }
   return false
 }
 
 async function handleExport() {
-  ElMessage.info('导出功能开发中')
+  try {
+    const params = {
+      keyword: query.keyword,
+      status: query.status,
+      priority: query.priority
+    }
+    const res = await exportTodo(params)
+    const blob = res.data
+    const url = window.URL.createObjectURL(new Blob([blob]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'todos.xlsx')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (error) {
+    ElMessage.error(error.message || '导出失败')
+  }
+}
+
+async function handleDownloadTemplate() {
+  try {
+    const res = await downloadTodoTemplate()
+    const blob = res.data
+    const url = window.URL.createObjectURL(new Blob([blob]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'todo_template.xlsx')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('模板下载成功')
+  } catch (error) {
+    ElMessage.error(error.message || '模板下载失败')
+  }
 }
 
 function resetImport() {
@@ -385,6 +438,10 @@ onMounted(loadData)
 }
 
 .import-upload {
+  margin-bottom: 16px;
+}
+
+.template-tip {
   margin-bottom: 16px;
 }
 </style>

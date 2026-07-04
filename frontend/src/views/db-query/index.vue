@@ -238,7 +238,8 @@ const filteredTables = computed(() => {
 })
 
 function normalizeConnection(row = {}) {
-  const dbType = row.db_type || row.dbType || row.type || 'mysql'
+  const rawDbType = row.db_type || row.dbType || row.type || 'mysql'
+  const dbType = rawDbType === 'postgres' ? 'postgresql' : rawDbType
   const sqlitePath = row.sqlite_path || row.sqlitePath || ''
   return {
     ...row,
@@ -257,7 +258,10 @@ function connectionSummary(conn) {
   if (dbType === 'sqlite') {
     return conn.sqlite_path || conn.sqlitePath || '-'
   }
-  return `${conn.host || '-'}:${conn.port || '-'} / ${conn.database || '-'}`
+  const host = conn.host || '-'
+  const port = conn.port || '-'
+  const database = conn.database || '-'
+  return `${host}:${port} / ${database}`
 }
 
 function buildDbConfig(conn) {
@@ -304,14 +308,11 @@ async function loadTables(showMessage = false) {
   tableLoading.value = true
   try {
     const res = await request({
-      url: '/api/app/db/query',
-      method: 'post',
-      data: {
-        action: 'tables',
-        config: buildDbConfig(currentConn.value)
-      }
+      url: `/api/app/db-connections/${currentConn.value.id}/tables`,
+      method: 'get'
     })
-    tables.value = res.data?.tables || []
+    const tableList = res.data || []
+    tables.value = tableList.map((item) => item.tableName || item.table_name || '')
     if (!selectedTable.value || !tables.value.includes(selectedTable.value)) {
       selectedTable.value = tables.value[0] || ''
     }
@@ -520,16 +521,13 @@ async function execSql(showSuccess = true) {
   const start = Date.now()
   try {
     const res = await request({
-      url: '/api/app/db/query',
+      url: `/api/app/db-connections/${currentConn.value.id}/execute`,
       method: 'post',
-      data: {
-        action: 'query',
-        config: buildDbConfig(currentConn.value),
-        sql: sql.value.trim()
-      }
+      data: { sql: sql.value.trim() }
     })
-    resultColumns.value = res.data?.columns || []
-    resultRows.value = mapRows(resultColumns.value, res.data?.rows || [])
+    const data = res.data || {}
+    resultColumns.value = data.columns || []
+    resultRows.value = data.rows || []
     execTime.value = Date.now() - start
     resultTitle.value = 'SQL 查询结果'
     executed.value = true
@@ -557,19 +555,15 @@ async function showTableSchema(table = selectedTable.value) {
   const start = Date.now()
   try {
     const res = await request({
-      url: '/api/app/db/query',
-      method: 'post',
-      data: {
-        action: 'schema',
-        config: buildDbConfig(currentConn.value),
-        table
-      }
+      url: `/api/app/db-connections/${currentConn.value.id}/tables/${table}/structure`,
+      method: 'get'
     })
-    resultRows.value = (res.data?.columns || []).map((item) => ({
-      字段名: item.name,
-      数据类型: item.type,
-      可空: item.nullable,
-      默认值: item.default ?? ''
+    const structure = res.data || []
+    resultRows.value = structure.map((item) => ({
+      字段名: item.columnName || item.column_name || item.name,
+      数据类型: item.dataType || item.data_type || item.type,
+      可空: item.isNullable || item.is_nullable || item.nullable,
+      默认值: (item.columnDefault || item.column_default || item.default) || ''
     }))
     resultColumns.value = ['字段名', '数据类型', '可空', '默认值']
     resultTitle.value = `表结构：${table}`
@@ -589,14 +583,36 @@ async function showTableSchema(table = selectedTable.value) {
 }
 
 async function previewTableData(table = selectedTable.value) {
-  if (!table) {
+  if (!currentConn.value.id || !table) {
     ElMessage.warning('请先选择数据表')
     return
   }
-  sql.value = `SELECT * FROM ${quoteIdentifier(table)} LIMIT 100;`
   selectedTable.value = table
-  resultTitle.value = `表数据预览：${table}`
-  await execSql(false)
+  execLoading.value = true
+  const start = Date.now()
+  try {
+    const res = await request({
+      url: `/api/app/db-connections/${currentConn.value.id}/tables/${table}/preview`,
+      method: 'get',
+      params: { limit: 100 }
+    })
+    const data = res.data || {}
+    resultColumns.value = data.columns || []
+    resultRows.value = data.rows || []
+    execTime.value = Date.now() - start
+    resultTitle.value = `表数据预览：${table}`
+    executed.value = true
+    sql.value = `SELECT * FROM ${quoteIdentifier(table)} LIMIT 100;`
+    markConnectionStatus(currentConn.value.id, true)
+  } catch (error) {
+    resetResult()
+    execTime.value = Date.now() - start
+    executed.value = true
+    markConnectionStatus(currentConn.value.id, false)
+    ElMessage.error(error.response?.data?.detail || error.message || '数据预览失败')
+  } finally {
+    execLoading.value = false
+  }
 }
 
 function formatSql() {

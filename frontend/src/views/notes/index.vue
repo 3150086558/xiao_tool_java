@@ -109,7 +109,7 @@
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check, Delete, Download, Plus, Search } from '@element-plus/icons-vue'
-import { createNote, deleteNote, getNotePage, updateNote } from '@/api/app/note'
+import { createNote, deleteNote, getNotePage, updateNote, exportNotes } from '@/api/app/note'
 import { getDictDataByCode } from '@/api/system/dict'
 
 const loading = ref(false)
@@ -142,12 +142,24 @@ const filteredList = computed(() => {
 })
 
 function normalizeNote(row = {}) {
+  let tags = []
+  if (Array.isArray(row.tags)) {
+    tags = [...row.tags]
+  } else if (typeof row.tags === 'string' && row.tags.trim()) {
+    try {
+      const parsed = JSON.parse(row.tags)
+      tags = Array.isArray(parsed) ? parsed : []
+    } catch (error) {
+      tags = row.tags.split(',').map((item) => item.trim()).filter(Boolean)
+    }
+  }
+
   return {
     id: row.id ?? null,
     title: row.title || '',
     content: row.content || '',
     noteType: row.noteType || row.note_type || '',
-    tags: Array.isArray(row.tags) ? [...row.tags] : [],
+    tags,
     createTime: row.createTime || row.created_at || '',
     updateTime: row.updateTime || row.updated_at || ''
   }
@@ -287,8 +299,26 @@ async function handleDelete(row) {
   }
 }
 
-function handleExport() {
-  ElMessage.info('导出功能开发中')
+async function handleExport() {
+  try {
+    const params = {
+      keyword: searchText.value,
+      type: selectedType.value
+    }
+    const res = await exportNotes(params)
+    const blob = res.data
+    const url = window.URL.createObjectURL(new Blob([blob]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'notes.xlsx')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (error) {
+    ElMessage.error(error.message || '导出失败')
+  }
 }
 
 function showTagInput() {

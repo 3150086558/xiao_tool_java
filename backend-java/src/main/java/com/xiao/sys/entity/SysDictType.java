@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.time.LocalDateTime;
+
 @TableName("sys_dict_type")
 public class SysDictType {
 
@@ -22,10 +24,10 @@ public class SysDictType {
     private Integer status;
 
     @JsonProperty("created_at")
-    private String createdAt;
+    private LocalDateTime createdAt;
 
     @JsonProperty("updated_at")
-    private String updatedAt;
+    private LocalDateTime updatedAt;
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
@@ -42,9 +44,9 @@ public class SysDictType {
     public Integer getStatus() { return status; }
     public void setStatus(Integer status) { this.status = status; }
 
-    public String getCreatedAt() { return createdAt; }
-    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public String getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
